@@ -1,5 +1,5 @@
 from datetime import datetime
-from extensions import db
+from app import db
 
 
 class RegisterSecret(db.Model):

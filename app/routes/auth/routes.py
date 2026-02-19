@@ -1,9 +1,9 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, current_user
 from datetime import datetime
-from extensions import db
-from models import User, RegisterSecret
-from forms import LoginForm, RegisterForm
+from app import db
+from app.models import User, RegisterSecret
+from app.forms import LoginForm, RegisterForm
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 

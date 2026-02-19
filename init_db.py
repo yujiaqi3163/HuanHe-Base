@@ -1,6 +1,5 @@
-from app import create_app
-from extensions import db
-from models import User, RegisterSecret
+from app import create_app, db
+from app.models import User, RegisterSecret
 from datetime import datetime
 
 

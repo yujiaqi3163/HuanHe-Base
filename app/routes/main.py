@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template
-from models import User, RegisterSecret
+from app.models import User, RegisterSecret
 
 bp = Blueprint('main', __name__)
 
