@@ -23,12 +23,29 @@
 <body class="bg-gray-50 text-gray-900 min-h-screen pb-28">
 
     {% block header %}
+    <!-- 消息闪现区域 -->
+    <div id="flash-messages" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message mb-2 px-5 py-3 rounded-xl shadow-lg border text-sm text-center inline-block {% if category == 'success' %}bg-green-50 border-green-200 text-green-700{% elif category == 'danger' %}bg-red-50 border-red-200 text-red-700{% elif category == 'info' %}bg-blue-50 border-blue-200 text-blue-700{% else %}bg-gray-50 border-gray-200 text-gray-700{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+    
     <!-- 1. 顶部导航栏 -->
     <header class="sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-100/50 px-4 py-3 flex items-center justify-between">
         <!-- 左边：用户头像 + 用户名称 -->
         <div class="flex items-center gap-2">
-            <div class="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                {{ current_user.username[0] if current_user and current_user.username else 'U' }}
+            <div class="w-9 h-9 flex-shrink-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden">
+                {% if current_user and current_user.avatar %}
+                    <img src="{{ current_user.avatar }}" class="w-full h-full object-cover">
+                {% else %}
+                    {{ current_user.username[0] if current_user and current_user.username else 'U' }}
+                {% endif %}
             </div>
             <span class="text-sm font-semibold text-gray-800">{{ current_user.username if current_user else '用户' }}</span>
         </div>

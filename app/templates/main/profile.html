@@ -1,43 +1,47 @@
 {% extends "base.html" %}
 
 {% block header %}
-<!-- 消息闪现区域 -->
-<div id="flash-messages" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="flash-message mb-2 px-5 py-3 rounded-xl shadow-lg border text-sm text-center inline-block {% if category == 'success' %}bg-green-50 border-green-200 text-green-700{% elif category == 'danger' %}bg-red-50 border-red-200 text-red-700{% elif category == 'info' %}bg-blue-50 border-blue-200 text-blue-700{% else %}bg-gray-50 border-gray-200 text-gray-700{% endif %}">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-</div>
 {% endblock %}
 
 {% block content %}
 <div class="px-4 py-6 space-y-6">
     
     <!-- 1. 用户基本信息卡片 -->
-    <section class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center gap-4">
-        <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border-2 border-white shadow-sm overflow-hidden">
-            <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-            </svg>
+    <a href="{{ url_for('main.profile_edit') }}" class="block bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 active:bg-gray-50 transition-colors">
+        <div class="w-16 h-16 flex-shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border-2 border-white shadow-sm overflow-hidden">
+            {% if current_user.avatar %}
+                <img src="{{ current_user.avatar }}" class="w-full h-full object-cover">
+            {% else %}
+                <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                </svg>
+            {% endif %}
         </div>
-        <div class="flex-grow">
-            <h2 class="text-xl font-bold text-gray-800">{{ current_user.username }}</h2>
+        <div class="flex-grow min-w-0">
+            <h2 class="text-xl font-bold text-gray-800 truncate">
+                {{ current_user.username }}
+                {% if current_user.gender %}
+                    {% if current_user.gender == 'male' %}
+                        <span class="ml-1 text-blue-500">♂</span>
+                    {% elif current_user.gender == 'female' %}
+                        <span class="ml-1 text-pink-500">♀</span>
+                    {% endif %}
+                {% endif %}
+            </h2>
             <p class="text-sm text-gray-400 mt-0.5">{{ current_user.email }}</p>
+            {% if current_user.bio %}
+                <p class="text-xs text-gray-500 mt-1 line-clamp-1">{{ current_user.bio }}</p>
+            {% endif %}
             <div class="inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-md mt-2 {% if current_user.is_super_admin %}bg-purple-50 text-purple-600{% elif current_user.is_admin %}bg-orange-50 text-orange-600{% else %}bg-blue-50 text-blue-600{% endif %}">
                 {% if current_user.is_super_admin %}超级管理员{% elif current_user.is_admin %}管理员{% else %}普通会员{% endif %}
             </div>
         </div>
-        <button class="text-gray-300">
+        <div class="text-gray-300">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
-        </button>
-    </section>
+        </div>
+    </a>
 
     <!-- 2. 数据看板 -->
     <div class="grid grid-cols-3 gap-2 text-center">

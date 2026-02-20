@@ -27,6 +27,14 @@ class User(UserMixin, db.Model):
     is_super_admin = db.Column(db.Boolean, default=False, nullable=False)
     # 创建时间，默认为当前时间
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    # 头像URL
+    avatar = db.Column(db.String(500), nullable=True)
+    # 个性签名
+    bio = db.Column(db.String(200), nullable=True)
+    # 性别：male-男，female-女，other-其他，null-未设置
+    gender = db.Column(db.String(10), nullable=True)
+    # 出生日期
+    birthday = db.Column(db.Date, nullable=True)
 
     # 与注册卡密的一对多关系
     register_secrets = db.relationship('RegisterSecret', backref='user', lazy=True)

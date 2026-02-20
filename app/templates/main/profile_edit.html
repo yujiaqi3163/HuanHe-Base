@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block header %}
+<!-- 消息闪现区域 -->
+<div id="flash-messages" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message mb-2 px-5 py-3 rounded-xl shadow-lg border text-sm text-center inline-block {% if category == 'success' %}bg-green-50 border-green-200 text-green-700{% elif category == 'danger' %}bg-red-50 border-red-200 text-red-700{% elif category == 'info' %}bg-blue-50 border-blue-200 text-blue-700{% else %}bg-gray-50 border-gray-200 text-gray-700{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
+<!-- 顶部导航栏 -->
+<header class="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100/50 px-4 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+        <a href="{{ url_for('main.profile') }}" class="p-2 -ml-2 text-gray-400 active:scale-90 transition-transform">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+        </a>
+        <h1 class="text-lg font-black tracking-tight">编辑个人资料</h1>
+    </div>
+    <button type="submit" form="profile-form" class="bg-blue-600 text-white px-5 py-2 rounded-full text-xs font-bold shadow-lg shadow-blue-200 active:scale-95 transition-all">
+        保存
+    </button>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 space-y-8 animate-fade-in">
+    
+    <form id="profile-form" action="{{ url_for('main.profile_edit') }}" method="POST" enctype="multipart/form-data" class="space-y-8">
+        
+        <!-- 1. 头像编辑区 -->
+        <div class="flex flex-col items-center justify-center py-4">
+            <div class="relative group">
+                <div class="w-24 h-24 rounded-[32px] overflow-hidden shadow-2xl shadow-blue-100 border-4 border-white">
+                    <img id="avatar-preview" src="{{ current_user.avatar or 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (current_user.username if current_user.username else 'default') }}" alt="用户头像" class="w-full h-full object-cover">
+                </div>
+                <label for="avatar-input" class="absolute -bottom-2 -right-2 bg-blue-600 text-white p-2 rounded-2xl shadow-lg border-2 border-white cursor-pointer active:scale-90 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </label>
+                <input type="file" id="avatar-input" name="avatar" class="hidden" accept="image/*" onchange="previewImage(this)">
+            </div>
+            <p class="text-[10px] text-gray-400 mt-4 font-bold uppercase tracking-widest">点击图标更换头像</p>
+        </div>
+
+        <!-- 2. 个人资料卡片 -->
+        <div class="space-y-4">
+            <h2 class="px-2 text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Profile</h2>
+            <div class="bg-white rounded-[32px] border border-gray-100 shadow-sm p-6 space-y-5">
+                <!-- 昵称 -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-gray-500 ml-1">用户昵称</label>
+                    <input type="text" name="username" value="{{ current_user.username }}" placeholder="输入您的昵称"
+                        class="w-full bg-gray-50 border-none rounded-2xl py-3 px-4 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-300 font-medium">
+                </div>
+                
+                <!-- 电子邮箱 -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-gray-500 ml-1">绑定邮箱</label>
+                    <input type="email" value="{{ current_user.email }}" placeholder="example@mail.com"
+                        class="w-full bg-gray-100 border-none rounded-2xl py-3 px-4 text-sm text-gray-400 cursor-not-allowed font-medium" readonly>
+                </div>
+
+                <!-- 性别 -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-gray-500 ml-1">性别</label>
+                    <div class="flex gap-3">
+                        <label class="flex-1">
+                            <input type="radio" name="gender" value="male" class="hidden peer" {% if current_user.gender == 'male' %}checked{% endif %}>
+                            <div class="w-full py-3 px-4 bg-gray-50 border-2 border-transparent rounded-2xl text-center text-sm font-medium text-gray-600 cursor-pointer transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-600">
+                                男
+                            </div>
+                        </label>
+                        <label class="flex-1">
+                            <input type="radio" name="gender" value="female" class="hidden peer" {% if current_user.gender == 'female' %}checked{% endif %}>
+                            <div class="w-full py-3 px-4 bg-gray-50 border-2 border-transparent rounded-2xl text-center text-sm font-medium text-gray-600 cursor-pointer transition-all peer-checked:border-pink-500 peer-checked:bg-pink-50 peer-checked:text-pink-600">
+                                女
+                            </div>
+                        </label>
+                        <label class="flex-1">
+                            <input type="radio" name="gender" value="other" class="hidden peer" {% if current_user.gender == 'other' %}checked{% endif %}>
+                            <div class="w-full py-3 px-4 bg-gray-50 border-2 border-transparent rounded-2xl text-center text-sm font-medium text-gray-600 cursor-pointer transition-all peer-checked:border-gray-500 peer-checked:bg-gray-100 peer-checked:text-gray-700">
+                                其他
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 出生日期 -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-gray-500 ml-1">出生日期</label>
+                    <input type="date" name="birthday" value="{{ current_user.birthday.strftime('%Y-%m-%d') if current_user.birthday else '' }}"
+                        class="w-full bg-gray-50 border-none rounded-2xl py-3 px-4 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-700 font-medium">
+                </div>
+
+                <!-- 个性签名 -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-gray-500 ml-1">个性签名</label>
+                    <textarea rows="3" name="bio" placeholder="介绍一下你自己..."
+                        class="w-full bg-gray-50 border-none rounded-2xl py-3 px-4 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-300 font-medium resize-none">{{ current_user.bio or '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. 账号安全 (只读/跳转) -->
+        <div class="bg-gray-100/50 rounded-[32px] p-5 flex items-center justify-between group active:bg-gray-100 transition-colors">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-orange-500 shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-gray-800">修改登录密码</p>
+                    <p class="text-[10px] text-gray-400">上次修改：3个月前</p>
+                </div>
+            </div>
+            <svg class="w-5 h-5 text-gray-300 group-active:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+        </div>
+
+        <!-- 退出登录按钮 -->
+        <a href="{{ url_for('auth.logout') }}" class="block w-full py-4 text-red-500 text-sm font-bold rounded-[24px] border border-red-50/50 active:bg-red-50 transition-colors text-center">
+            退出当前账号
+        </a>
+
+    </form>
+</div>
+
+<script>
+    // 头像实时预览逻辑
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('avatar-preview').src = e.target.result;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+</script>
+
+<style>
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-out forwards;
+    }
+    
+    /* 美化日期选择器 */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        opacity: 0.6;
+        cursor: pointer;
+        padding: 5px;
+        margin-right: -5px;
+        transition: opacity 0.2s;
+    }
+    
+    input[type="date"]::-webkit-calendar-picker-indicator:hover {
+        opacity: 1;
+    }
+    
+    input[type="date"] {
+        -webkit-appearance: none;
+        appearance: none;
+    }
+</style>
+{% endblock %}

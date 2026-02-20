@@ -1,8 +1,36 @@
-from flask import Blueprint, render_template, request, jsonify  # 导入Flask相关模块
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, current_app  # 导入Flask相关模块
 from flask_login import login_required, current_user  # 导入登录相关模块
 from app.models import User, RegisterSecret, Material  # 导入数据模型
+from app import db  # 导入数据库
+import os
+from werkzeug.utils import secure_filename
+from datetime import datetime
 
 bp = Blueprint('main', __name__)  # 创建主路由蓝图
+
+
+def save_image(file):
+    """保存图片到本地并返回相对路径"""
+    if not file:
+        return None
+    
+    # 生成安全的文件名
+    filename = secure_filename(file.filename)
+    # 添加时间戳避免重名
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
+    filename = timestamp + filename
+    
+    # 构建保存路径
+    upload_folder = os.path.join(current_app.root_path, 'static', 'uploads')
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+    
+    # 保存文件
+    file_path = os.path.join(upload_folder, filename)
+    file.save(file_path)
+    
+    # 返回相对路径（用于数据库存储）
+    return f'/static/uploads/{filename}'
 
 
 @bp.route('/')
@@ -27,6 +55,55 @@ def index():
 @login_required
 def profile():
     return render_template('main/profile.html')  # 渲染个人中心模板
+
+
+@bp.route('/profile/edit', methods=['GET', 'POST'])
+@login_required
+def profile_edit():
+    if request.method == 'POST':
+        # 获取表单数据
+        username = request.form.get('username', '').strip()
+        bio = request.form.get('bio', '').strip()
+        gender = request.form.get('gender', '').strip() or None
+        birthday_str = request.form.get('birthday', '').strip()
+        
+        # 处理出生日期
+        birthday = None
+        if birthday_str:
+            try:
+                from datetime import datetime
+                birthday = datetime.strptime(birthday_str, '%Y-%m-%d').date()
+            except:
+                pass
+        
+        # 检查用户名是否已被其他用户使用
+        if username and username != current_user.username:
+            existing_user = User.query.filter_by(username=username).first()
+            if existing_user:
+                flash('用户名已被使用', 'danger')
+                return redirect(url_for('main.profile_edit'))
+        
+        # 更新用户信息
+        if username:
+            current_user.username = username
+        current_user.bio = bio
+        current_user.gender = gender
+        current_user.birthday = birthday
+        
+        # 处理头像上传
+        avatar_file = request.files.get('avatar')
+        if avatar_file and avatar_file.filename:
+            avatar_url = save_image(avatar_file)
+            if avatar_url:
+                current_user.avatar = avatar_url
+        
+        # 保存到数据库
+        db.session.commit()
+        
+        flash('个人资料更新成功', 'success')
+        return redirect(url_for('main.profile'))
+    
+    return render_template('main/profile_edit.html')  # 渲染个人资料编辑模板
 
 
 @bp.route('/api/latest-materials')
