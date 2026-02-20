@@ -13,95 +13,49 @@
         <!-- 容器：裁剪边界对齐屏幕边缘 -->
         <div id="carousel-wrapper" class="relative overflow-hidden touch-pan-y w-full">
             <div id="carousel-track" class="flex cursor-grab active:cursor-grabbing" style="will-change: transform;">
-                <!-- 真实素材 1 -->
-                <div class="carousel-slide shrink-0 w-full px-4" data-index="0">
+                {% for material in hot_materials %}
+                <div class="carousel-slide shrink-0 w-full px-4" data-index="{{ loop.index0 }}">
                     <div class="relative rounded-2xl overflow-hidden aspect-square shadow-md bg-gray-200">
-                        <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800" class="absolute inset-0 w-full h-full object-cover">
+                        {% set cover_image = material.images|selectattr('is_cover')|first %}
+                        {% if cover_image %}
+                            <img src="{{ cover_image.image_url }}" class="absolute inset-0 w-full h-full object-cover">
+                        {% else %}
+                            <div class="absolute inset-0 w-full h-full flex items-center justify-center bg-gray-200">
+                                <svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z" /></svg>
+                            </div>
+                        {% endif %}
                         <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
-                        <span class="absolute top-3 left-3 px-2 py-1 bg-white/20 backdrop-blur-md text-white text-[10px] font-bold rounded-lg border border-white/30">数码外设</span>
+                        <span class="absolute top-3 left-3 px-2 py-1 bg-white/20 backdrop-blur-md text-white text-[10px] font-bold rounded-lg border border-white/30">{{ material.material_type.name if material.material_type else '未分类' }}</span>
                         
                         <div class="absolute bottom-0 left-0 right-0 p-4 text-white">
-                            <h3 class="text-base font-bold line-clamp-1">极简风降噪耳机桌面摆拍</h3>
+                            <h3 class="text-base font-bold line-clamp-1">{{ material.title }}</h3>
                             <!-- 增强的信息展示区 -->
                             <div class="flex items-center gap-4 mt-2.5 text-[10px] text-gray-300">
                                 <div class="flex items-center gap-1">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                    <span>12.5w</span>
+                                    <span>{% if material.view_count >= 10000 %}{{ '%.1f' | format(material.view_count / 10000) }}w{% else %}{{ material.view_count }}{% endif %}</span>
                                 </div>
                                 <div class="flex items-center gap-1">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-                                    <span>3,842</span>
+                                    <span>{{ material.favorite_count }}</span>
                                 </div>
                                 <div class="flex items-center gap-1">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                    <span>892</span>
+                                    <span>{{ material.download_count }}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <!-- 真实素材 2 -->
-                <div class="carousel-slide shrink-0 w-full px-4" data-index="1">
-                    <div class="relative rounded-2xl overflow-hidden aspect-square shadow-md bg-gray-200">
-                        <img src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=800" class="absolute inset-0 w-full h-full object-cover">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
-                        <span class="absolute top-3 left-3 px-2 py-1 bg-white/20 backdrop-blur-md text-white text-[10px] font-bold rounded-lg border border-white/30">摄影摄像</span>
-                        
-                        <div class="absolute bottom-0 left-0 right-0 p-4 text-white">
-                            <h3 class="text-base font-bold line-clamp-1">复古胶片感微单直出素材</h3>
-                            <div class="flex items-center gap-4 mt-2.5 text-[10px] text-gray-300">
-                                <div class="flex items-center gap-1">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                    <span>9.8w</span>
-                                </div>
-                                <div class="flex items-center gap-1">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-                                    <span>2,105</span>
-                                </div>
-                                <div class="flex items-center gap-1">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                    <span>421</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 真实素材 3 -->
-                <div class="carousel-slide shrink-0 w-full px-4" data-index="2">
-                    <div class="relative rounded-2xl overflow-hidden aspect-square shadow-md bg-gray-200">
-                        <img src="https://images.unsplash.com/photo-1595225476474-87563907a212?q=80&w=800" class="absolute inset-0 w-full h-full object-cover">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
-                        <span class="absolute top-3 left-3 px-2 py-1 bg-white/20 backdrop-blur-md text-white text-[10px] font-bold rounded-lg border border-white/30">电脑配件</span>
-                        
-                        <div class="absolute bottom-0 left-0 right-0 p-4 text-white">
-                            <h3 class="text-base font-bold line-clamp-1">高颜值客制化机械键盘</h3>
-                            <div class="flex items-center gap-4 mt-2.5 text-[10px] text-gray-300">
-                                <div class="flex items-center gap-1">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                    <span>8.2w</span>
-                                </div>
-                                <div class="flex items-center gap-1">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-                                    <span>1,560</span>
-                                </div>
-                                <div class="flex items-center gap-1">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                    <span>315</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {% endfor %}
             </div>
         </div>
         
         <!-- 指示器 -->
         <div class="flex justify-center gap-1.5 mt-2" id="carousel-dots">
-            <div class="w-4 h-1.5 bg-blue-600 rounded-full transition-all duration-300"></div>
-            <div class="w-1.5 h-1.5 bg-gray-200 rounded-full transition-all duration-300"></div>
-            <div class="w-1.5 h-1.5 bg-gray-200 rounded-full transition-all duration-300"></div>
+            {% for material in hot_materials %}
+            <div class="{% if loop.first %}w-4 h-1.5 bg-blue-600{% else %}w-1.5 h-1.5 bg-gray-200{% endif %} rounded-full transition-all duration-300"></div>
+            {% endfor %}
         </div>
     </div>
 
@@ -133,39 +87,59 @@
         </div>
     </div>
 
-    <!-- 3. 素材列表 (标题右侧已还原排序/筛选按钮) -->
+    <!-- 3. 素材列表 -->
     <div class="px-4 space-y-3">
+        <!-- 标题 + 排序按钮 -->
         <div class="flex items-center justify-between">
             <h2 class="text-base font-bold text-gray-800">最新入库素材</h2>
-            <!-- 还原的筛选/分类按钮 -->
-            <div class="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg text-[10px]">
-                <button class="px-2.5 py-1 bg-white shadow-sm rounded-md font-bold text-gray-800 transition-all">全部</button>
-                <button class="px-2.5 py-1 text-gray-400 font-medium transition-all">热度排序</button>
-                <button class="px-2.5 py-1 text-gray-400 font-medium transition-all">下载排序</button>
+            <!-- 排序按钮 -->
+            <div class="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg text-[10px]" id="sort-buttons">
+                <button class="sort-btn px-2.5 py-1 bg-white shadow-sm rounded-md font-bold text-gray-800 transition-all" data-sort="created_at">全部</button>
+                <button class="sort-btn px-2.5 py-1 text-gray-400 font-medium transition-all" data-sort="view">热度排序</button>
+                <button class="sort-btn px-2.5 py-1 text-gray-400 font-medium transition-all" data-sort="favorite">收藏排序</button>
+                <button class="sort-btn px-2.5 py-1 text-gray-400 font-medium transition-all" data-sort="download">下载排序</button>
             </div>
         </div>
         
-        <div class="grid grid-cols-2 gap-3">
+        <!-- 搜索框 -->
+        <div class="relative">
+            <input type="text" id="search-input" placeholder="搜索素材名称..." 
+                class="w-full bg-white border border-gray-200 rounded-2xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-500/10 outline-none transition-all">
+            <div class="absolute left-3.5 top-2.5 text-gray-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-3" id="materials-grid">
+            {% for material in latest_materials %}
             <div class="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 pb-2">
                 <div class="aspect-square bg-gray-100 relative">
-                    <img src="https://images.unsplash.com/photo-1546868871-7041f2a55e12?q=80&w=400" class="object-cover w-full h-full">
+                    {% set cover_image = material.images|selectattr('is_cover')|first %}
+                    {% if cover_image %}
+                        <img src="{{ cover_image.image_url }}" class="object-cover w-full h-full">
+                    {% else %}
+                        <div class="w-full h-full flex items-center justify-center bg-gray-100">
+                            <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z" /></svg>
+                        </div>
+                    {% endif %}
+                    <span class="absolute top-2 left-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm text-white text-[9px] font-bold rounded-lg">{{ material.material_type.name if material.material_type else '未分类' }}</span>
                 </div>
                 <div class="px-2.5 pt-2">
-                    <h4 class="text-xs font-bold text-gray-800 line-clamp-1">Apple Watch S8 九成新</h4>
+                    <h4 class="text-xs font-bold text-gray-800 line-clamp-1">{{ material.title }}</h4>
                     <div class="flex items-center justify-between mt-2">
                         <!-- 数据区 -->
                         <div class="flex items-center gap-2 text-[9px] text-gray-400">
                             <span class="flex items-center gap-0.5">
                                 <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                1.8k
+                                {% if material.view_count >= 1000 %}{{ '%.1f' | format(material.view_count / 1000) }}k{% else %}{{ material.view_count }}{% endif %}
                             </span>
                             <span class="flex items-center gap-0.5">
                                 <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-                                452
+                                {{ material.favorite_count }}
                             </span>
                             <span class="flex items-center gap-0.5">
                                 <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                124
+                                {{ material.download_count }}
                             </span>
                         </div>
                         <div class="w-5 h-5 flex items-center justify-center text-gray-300">
@@ -174,33 +148,18 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 pb-2">
-                <div class="aspect-square bg-gray-100 relative">
-                    <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=400" class="object-cover w-full h-full">
-                </div>
-                <div class="px-2.5 pt-2">
-                    <h4 class="text-xs font-bold text-gray-800 line-clamp-1">耐克经典跑鞋复刻版</h4>
-                    <div class="flex items-center justify-between mt-2">
-                        <div class="flex items-center gap-2 text-[9px] text-gray-400">
-                            <span class="flex items-center gap-0.5">
-                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                5.1k
-                            </span>
-                            <span class="flex items-center gap-0.5">
-                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-                                892
-                            </span>
-                            <span class="flex items-center gap-0.5">
-                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                342
-                            </span>
-                        </div>
-                        <div class="w-5 h-5 flex items-center justify-center text-gray-300">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                        </div>
-                    </div>
-                </div>
+            {% endfor %}
+        </div>
+        
+        <div id="materials-loading" class="hidden w-full py-4 text-center">
+            <div class="inline-flex items-center gap-2 text-gray-400 text-xs">
+                <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                加载中...
             </div>
+        </div>
+        
+        <div id="materials-no-more" class="hidden w-full py-4 text-gray-400 text-xs font-medium text-center">
+            没有更多数据了
         </div>
     </div>
 
@@ -208,6 +167,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        // 轮播图逻辑
         const wrapper = document.getElementById('carousel-wrapper');
         const track = document.getElementById('carousel-track');
         const dots = document.getElementById('carousel-dots').children;
@@ -313,6 +273,207 @@
             currentTranslate = -currentIndex * step;
             prevTranslate = currentTranslate;
             setTransform(currentTranslate);
+        });
+        
+        // 素材无限滚动加载逻辑
+        window.materialsCurrentPage = 1;
+        window.materialsIsLoading = false;
+        window.materialsHasMore = {{ 'true' if total_count > 8 else 'false' }};
+        window.materialsPerPage = 8;
+        window.materialsSortBy = 'created_at';
+        window.materialsSearchKeyword = '';
+        
+        function formatViewCount(count) {
+            if (count >= 1000) {
+                return (count / 1000).toFixed(1) + 'k';
+            }
+            return count;
+        }
+        
+        function createMaterialCard(material) {
+            let coverImgHtml = '';
+            if (material.cover_image_url) {
+                coverImgHtml = `<img src="${material.cover_image_url}" class="object-cover w-full h-full">`;
+            } else {
+                coverImgHtml = `
+                    <div class="w-full h-full flex items-center justify-center bg-gray-100">
+                        <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z" /></svg>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 pb-2">
+                    <div class="aspect-square bg-gray-100 relative">
+                        ${coverImgHtml}
+                        <span class="absolute top-2 left-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm text-white text-[9px] font-bold rounded-lg">${material.material_type}</span>
+                    </div>
+                    <div class="px-2.5 pt-2">
+                        <h4 class="text-xs font-bold text-gray-800 line-clamp-1">${material.title}</h4>
+                        <div class="flex items-center justify-between mt-2">
+                            <div class="flex items-center gap-2 text-[9px] text-gray-400">
+                                <span class="flex items-center gap-0.5">
+                                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    ${formatViewCount(material.view_count)}
+                                </span>
+                                <span class="flex items-center gap-0.5">
+                                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                                    ${material.favorite_count}
+                                </span>
+                                <span class="flex items-center gap-0.5">
+                                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                    ${material.download_count}
+                                </span>
+                            </div>
+                            <div class="w-5 h-5 flex items-center justify-center text-gray-300">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function updateSortButtons(activeSort) {
+            const buttons = document.querySelectorAll('.sort-btn');
+            buttons.forEach(btn => {
+                const sort = btn.dataset.sort;
+                
+                if (sort === activeSort) {
+                    btn.classList.remove('text-gray-400', 'font-medium');
+                    btn.classList.add('bg-white', 'shadow-sm', 'rounded-md', 'font-bold', 'text-gray-800');
+                } else {
+                    btn.classList.remove('bg-white', 'shadow-sm', 'rounded-md', 'font-bold', 'text-gray-800');
+                    btn.classList.add('text-gray-400', 'font-medium');
+                }
+            });
+        }
+        
+        function loadMaterials(sortBy, searchKeyword) {
+            window.materialsSortBy = sortBy;
+            window.materialsSearchKeyword = searchKeyword || '';
+            window.materialsCurrentPage = 1;
+            
+            const container = document.getElementById('materials-grid');
+            const loadingState = document.getElementById('materials-loading');
+            const noMoreState = document.getElementById('materials-no-more');
+            
+            loadingState.classList.remove('hidden');
+            noMoreState.classList.add('hidden');
+            
+            let url = `/api/latest-materials?page=1&per_page=${window.materialsPerPage}&sort=${sortBy}`;
+            if (window.materialsSearchKeyword) {
+                url += `&search=${encodeURIComponent(window.materialsSearchKeyword)}`;
+            }
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        container.innerHTML = '';
+                        
+                        data.data.forEach(material => {
+                            const cardHtml = createMaterialCard(material);
+                            container.insertAdjacentHTML('beforeend', cardHtml);
+                        });
+                        
+                        window.materialsHasMore = data.pagination.has_more;
+                        
+                        if (!window.materialsHasMore) {
+                            noMoreState.classList.remove('hidden');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('加载素材出错:', error);
+                })
+                .finally(() => {
+                    loadingState.classList.add('hidden');
+                });
+        }
+        
+        function handleSearchInput() {
+            const searchInput = document.getElementById('search-input');
+            const keyword = searchInput.value.trim();
+            
+            if (window.searchTimeout) {
+                clearTimeout(window.searchTimeout);
+            }
+            
+            window.searchTimeout = setTimeout(() => {
+                loadMaterials(window.materialsSortBy, keyword);
+            }, 300);
+        }
+        
+        function loadMoreMaterials() {
+            if (window.materialsIsLoading || !window.materialsHasMore) return;
+            
+            window.materialsIsLoading = true;
+            window.materialsCurrentPage++;
+            
+            const loadingState = document.getElementById('materials-loading');
+            const noMoreState = document.getElementById('materials-no-more');
+            
+            loadingState.classList.remove('hidden');
+            noMoreState.classList.add('hidden');
+            
+            let url = `/api/latest-materials?page=${window.materialsCurrentPage}&per_page=${window.materialsPerPage}&sort=${window.materialsSortBy}`;
+            if (window.materialsSearchKeyword) {
+                url += `&search=${encodeURIComponent(window.materialsSearchKeyword)}`;
+            }
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const container = document.getElementById('materials-grid');
+                        
+                        data.data.forEach(material => {
+                            const cardHtml = createMaterialCard(material);
+                            container.insertAdjacentHTML('beforeend', cardHtml);
+                        });
+                        
+                        window.materialsHasMore = data.pagination.has_more;
+                        
+                        if (!window.materialsHasMore) {
+                            noMoreState.classList.remove('hidden');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('加载素材出错:', error);
+                })
+                .finally(() => {
+                    window.materialsIsLoading = false;
+                    loadingState.classList.add('hidden');
+                });
+        }
+        
+        function handleSortClick(sortBy) {
+            updateSortButtons(sortBy);
+            loadMaterials(sortBy, window.materialsSearchKeyword);
+        }
+        
+        // 绑定排序按钮点击事件
+        document.querySelectorAll('.sort-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const sortBy = btn.dataset.sort;
+                handleSortClick(sortBy);
+            });
+        });
+        
+        // 绑定搜索输入框事件
+        const searchInput = document.getElementById('search-input');
+        searchInput.addEventListener('input', handleSearchInput);
+        
+        window.addEventListener('scroll', () => {
+            const scrollTop = window.scrollY || document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight;
+            const clientHeight = document.documentElement.clientHeight;
+            
+            if (scrollTop + clientHeight >= scrollHeight - 500) {
+                loadMoreMaterials();
+            }
         });
     });
 </script>

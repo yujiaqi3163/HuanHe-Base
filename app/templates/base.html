@@ -23,18 +23,22 @@
 <body class="bg-gray-50 text-gray-900 min-h-screen pb-28">
 
     {% block header %}
-    <!-- 1. 顶部搜索栏 (极简悬浮设计) -->
-    <header class="sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-100/50 px-4 py-3 flex items-center gap-3">
-        <div class="relative flex-grow">
-            <input type="text" placeholder="搜索精美素材..." 
-                class="w-full bg-gray-100/80 border-none rounded-2xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-500/10 outline-none transition-all placeholder:text-gray-400 font-medium">
-            <div class="absolute left-3.5 top-3 text-gray-400">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+    <!-- 1. 顶部导航栏 -->
+    <header class="sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-100/50 px-4 py-3 flex items-center justify-between">
+        <!-- 左边：用户头像 + 用户名称 -->
+        <div class="flex items-center gap-2">
+            <div class="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                {{ current_user.username[0] if current_user and current_user.username else 'U' }}
             </div>
+            <span class="text-sm font-semibold text-gray-800">{{ current_user.username if current_user else '用户' }}</span>
         </div>
-        <!-- 消息中心标识 -->
+        
+        <!-- 中间：AI素材网标题 -->
+        <div class="absolute left-1/2 -translate-x-1/2">
+            <h1 class="text-base font-black text-gray-900 tracking-tight">AI素材网</h1>
+        </div>
+        
+        <!-- 右边：消息中心（保持不变） -->
         <button class="relative p-2.5 bg-gray-100/80 text-gray-600 rounded-2xl active:scale-90 transition-transform">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
