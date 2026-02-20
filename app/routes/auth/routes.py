@@ -67,4 +67,4 @@ def register():
 def logout():
     logout_user()  # 退出登录
     flash('已成功退出登录', 'info')  # 显示消息
-    return redirect(url_for('main.index'))  # 重定向到首页
+    return redirect(url_for('auth.login'))  # 重定向到首页

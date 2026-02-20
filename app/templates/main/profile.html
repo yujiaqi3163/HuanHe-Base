@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block header %}
+<!-- 消息闪现区域 -->
+<div id="flash-messages" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message mb-2 px-5 py-3 rounded-xl shadow-lg border text-sm text-center inline-block {% if category == 'success' %}bg-green-50 border-green-200 text-green-700{% elif category == 'danger' %}bg-red-50 border-red-200 text-red-700{% elif category == 'info' %}bg-blue-50 border-blue-200 text-blue-700{% else %}bg-gray-50 border-gray-200 text-gray-700{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="px-4 py-6 space-y-6">
+    
+    <!-- 1. 用户基本信息卡片 -->
+    <section class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center gap-4">
+        <!-- 头像 -->
+        <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border-2 border-white shadow-sm overflow-hidden">
+            <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+            </svg>
+        </div>
+        <!-- 文字信息 -->
+        <div class="flex-grow">
+            <h2 class="text-xl font-bold text-gray-800">{{ current_user.username }}</h2>
+            <p class="text-sm text-gray-400 mt-0.5">{{ current_user.email }}</p>
+            <div class="inline-flex items-center px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-md mt-2">
+                普通会员
+            </div>
+        </div>
+        <!-- 编辑按钮 -->
+        <button class="text-gray-300">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+        </button>
+    </section>
+
+    <!-- 2. 数据看板 (可选) -->
+    <div class="grid grid-cols-3 gap-2 text-center">
+        <div class="bg-white py-3 rounded-2xl border border-gray-50">
+            <p class="text-lg font-black text-gray-800">128</p>
+            <p class="text-[10px] text-gray-400">生成素材</p>
+        </div>
+        <div class="bg-white py-3 rounded-2xl border border-gray-50">
+            <p class="text-lg font-black text-gray-800">15</p>
+            <p class="text-[10px] text-gray-400">收藏夹</p>
+        </div>
+        <div class="bg-white py-3 rounded-2xl border border-gray-50">
+            <p class="text-lg font-black text-gray-800">32</p>
+            <p class="text-[10px] text-gray-400">下载数</p>
+        </div>
+    </div>
+
+    <!-- 3. 功能列表组 -->
+    <div class="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100">
+        <!-- 卡密信息 -->
+        <a href="#" class="flex items-center justify-between px-5 py-4 active:bg-gray-50 transition-colors border-b border-gray-50">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                </div>
+                <span class="text-sm font-medium text-gray-700">卡密信息</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-orange-500 font-bold">有效期至 2026-12</span>
+                <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            </div>
+        </a>
+
+        <!-- 修改密码 -->
+        <a href="#" class="flex items-center justify-between px-5 py-4 active:bg-gray-50 transition-colors border-b border-gray-50">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                </div>
+                <span class="text-sm font-medium text-gray-700">安全设置 (修改密码)</span>
+            </div>
+            <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        </a>
+
+        <!-- 帮助中心 -->
+        <a href="#" class="flex items-center justify-between px-5 py-4 active:bg-gray-50 transition-colors border-b border-gray-50">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <span class="text-sm font-medium text-gray-700">帮助与反馈</span>
+            </div>
+            <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        </a>
+
+        <!-- 关于应用 -->
+        <a href="#" class="flex items-center justify-between px-5 py-4 active:bg-gray-50 transition-colors">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <span class="text-sm font-medium text-gray-700">关于 AI 闲鱼素材库</span>
+            </div>
+            <span class="text-[10px] text-gray-400 font-mono">v1.0.4</span>
+        </a>
+    </div>
+
+    <!-- 4. 退出登录按钮 -->
+    <div class="pt-2">
+        <a href="{{ url_for('auth.logout') }}" class="w-full py-4 bg-white text-red-500 font-bold rounded-2xl border border-red-50 border-b-2 active:bg-red-50 transition-colors flex items-center justify-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            退出当前账号
+        </a>
+    </div>
+
+</div>
+{% endblock %}

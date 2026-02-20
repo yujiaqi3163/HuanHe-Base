@@ -28,6 +28,19 @@
         <div class="w-full max-w-[380px] mx-auto flex flex-col">
             
             <!-- 标题区域：显示应用名称和欢迎语 -->
+            <!-- 消息闪现区域 -->
+            <div id="flash-messages-login" class="mb-4 flex flex-col items-center">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="flash-message mb-2 px-5 py-3 rounded-xl shadow-lg border text-sm text-center inline-block {% if category == 'success' %}bg-green-50 border-green-200 text-green-700{% elif category == 'danger' %}bg-red-50 border-red-200 text-red-700{% elif category == 'info' %}bg-blue-50 border-blue-200 text-blue-700{% else %}bg-gray-50 border-gray-200 text-gray-700{% endif %}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+
             <header class="text-center mb-6">
                 <h1 class="text-2xl font-black tracking-tighter text-blue-600 mb-1">
                     AI闲鱼素材库
@@ -41,17 +54,6 @@
                     <p class="text-[11px] text-blue-700 font-medium">欢迎回来！请登录您的账号</p>
                 </div>
             </header>
-
-            <!-- 消息闪现区域：显示成功或错误消息 -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="mb-4 p-3 rounded-xl {% if category == 'success' %}bg-green-50 border border-green-200 text-green-700{% elif category == 'danger' %}bg-red-50 border border-red-200 text-red-700{% else %}bg-blue-50 border border-blue-200 text-blue-700{% endif %} text-sm">
-                            {{ message }}
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
 
             <!-- 表单容器：白色卡片样式 -->
             <main class="bg-white rounded-[2.5rem] shadow-2xl shadow-blue-500/10 border border-gray-100">
@@ -128,6 +130,23 @@
 
         </div>
     </div>
+
+    <!-- 消息自动消失脚本 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message, index) {
+                setTimeout(function() {
+                    message.style.transition = 'opacity 0.5s, transform 0.5s';
+                    message.style.opacity = '0';
+                    message.style.transform = 'translateY(-10px)';
+                    setTimeout(function() {
+                        message.remove();
+                    }, 500);
+                }, 5000 + index * 500);
+            });
+        });
+    </script>
 
 </body>
 </html>
