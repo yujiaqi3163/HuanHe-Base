@@ -8,119 +8,171 @@
         <div class="flex items-center justify-between">
             <h2 class="text-xl font-bold text-gray-900">用户管理</h2>
             <div class="flex flex-col text-right">
-                <span class="text-xs text-gray-400">活跃用户: 1,842</span>
-                <span class="text-[10px] text-green-500 font-bold">今日新增: +12</span>
+                <span class="text-xs text-gray-400">总计: {{ total_count }}</span>
             </div>
         </div>
         
         <div class="flex gap-2">
             <div class="relative flex-grow">
-                <input type="text" placeholder="搜索 ID / 手机号 / 昵称..." 
-                    class="w-full bg-white border border-gray-200 rounded-2xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-500/10 outline-none transition-all">
-                <div class="absolute left-3.5 top-3.5 text-gray-400">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                </div>
+                <form method="get" action="{{ url_for('admin.users') }}">
+                    <input type="text" name="search" placeholder="搜索用户名/邮箱..." 
+                        value="{{ search_keyword }}"
+                        class="w-full bg-white border border-gray-200 rounded-2xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-500/10 outline-none transition-all">
+                    <div class="absolute left-3.5 top-3.5 text-gray-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    </div>
+                </form>
             </div>
-            <!-- 筛选按钮 -->
-            <button class="bg-white border border-gray-200 text-gray-600 p-3 rounded-2xl active:bg-gray-50 transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-            </button>
         </div>
     </div>
 
-    <!-- 2. 快速切换 -->
-    <div class="flex gap-2 overflow-x-auto no-scrollbar py-1">
-        <button class="flex-shrink-0 px-4 py-2 bg-gray-900 text-white rounded-xl text-xs font-bold shadow-md">全部用户</button>
-        <button class="flex-shrink-0 px-4 py-2 bg-white text-gray-500 border border-gray-100 rounded-xl text-xs font-medium">VIP会员</button>
-        <button class="flex-shrink-0 px-4 py-2 bg-white text-gray-500 border border-gray-100 rounded-xl text-xs font-medium">普通用户</button>
-        <button class="flex-shrink-0 px-4 py-2 bg-white text-gray-500 border border-gray-100 rounded-xl text-xs font-medium">已封禁</button>
-    </div>
-
-    <!-- 3. 用户列表 -->
-    <div class="space-y-4">
+    <!-- 2. 用户列表 -->
+    <div class="space-y-3">
         
-        <!-- 用户项 1: VIP -->
-        <div class="bg-white rounded-3xl border border-gray-100 p-4 shadow-sm active:bg-gray-50 transition-colors cursor-pointer" onclick="location.href='#edit-user-1024'">
+        {% if users %}
+        {% for user in users %}
+        <div class="bg-white rounded-3xl border border-gray-100 p-4 shadow-sm">
             <div class="flex items-center gap-4">
-                <!-- 头像/占位 -->
-                <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-yellow-400 to-orange-500 flex items-center justify-center text-white font-bold text-lg shadow-inner">
-                    A
+                <!-- 头像 -->
+                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg overflow-hidden border-2 border-white shadow-sm">
+                    {% if user.avatar %}
+                        <img src="{{ user.avatar }}" class="w-full h-full object-cover">
+                    {% else %}
+                        {{ user.username[0].upper() if user.username else 'U' }}
+                    {% endif %}
                 </div>
-                <div class="flex-grow">
+                <div class="flex-grow min-w-0">
                     <div class="flex items-center gap-2">
-                        <h3 class="text-sm font-bold text-gray-800">Admin_Jack</h3>
-                        <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-[9px] font-black rounded-full uppercase">VIP</span>
+                        <h3 class="text-sm font-bold text-gray-800 truncate">{{ user.username }}</h3>
+                        {% if user.is_super_admin %}
+                        <span class="px-2 py-0.5 bg-purple-50 text-purple-600 text-[9px] font-black rounded-full uppercase">超级管理员</span>
+                        {% elif user.is_admin %}
+                        <span class="px-2 py-0.5 bg-orange-50 text-orange-600 text-[9px] font-black rounded-full uppercase">管理员</span>
+                        {% else %}
+                        <span class="px-2 py-0.5 bg-gray-100 text-gray-500 text-[9px] font-bold rounded-full uppercase">普通用户</span>
+                        {% endif %}
                     </div>
-                    <p class="text-[10px] text-gray-400 mt-0.5">ID: 10294 · 138****8888</p>
+                    <p class="text-[10px] text-gray-400 mt-0.5 truncate">ID: {{ user.id }} · {{ user.email }}</p>
                 </div>
                 <div class="text-right">
-                    <p class="text-[10px] text-gray-400 leading-none">累计核销</p>
-                    <p class="text-xs font-bold text-blue-600 mt-1">12 张卡密</p>
+                    <p class="text-[10px] text-gray-400 leading-none">使用卡密</p>
+                    <p class="text-xs font-bold text-blue-600 mt-1">{{ user.register_secrets|length }} 张</p>
                 </div>
             </div>
             <div class="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between">
-                <span class="text-[10px] text-gray-300">注册日期: 2024-05-12</span>
+                <span class="text-[10px] text-gray-300">注册日期: {{ user.created_at.strftime('%Y-%m-%d') }}</span>
                 <div class="flex gap-2">
-                    <button class="px-3 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-lg active:scale-95 transition-transform">编辑权限</button>
-                    <button class="px-3 py-1.5 bg-red-50 text-red-500 text-[10px] font-bold rounded-lg active:scale-95 transition-transform">注销</button>
+                    {% if not user.is_super_admin %}
+                        {% if user.is_admin %}
+                        <button onclick="removeAdmin({{ user.id }})" class="px-3 py-1.5 bg-gray-50 text-gray-500 text-[10px] font-bold rounded-lg active:scale-95 transition-transform">取消管理员</button>
+                        {% else %}
+                        <button onclick="setAdmin({{ user.id }})" class="px-3 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-lg active:scale-95 transition-transform">设为管理员</button>
+                        <button onclick="deleteUser({{ user.id }})" class="px-3 py-1.5 bg-red-50 text-red-500 text-[10px] font-bold rounded-lg active:scale-95 transition-transform">删除</button>
+                        {% endif %}
+                    {% endif %}
                 </div>
             </div>
         </div>
-
-        <!-- 用户项 2: 普通用户 -->
-        <div class="bg-white rounded-3xl border border-gray-100 p-4 shadow-sm active:bg-gray-50 transition-colors cursor-pointer">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 font-bold text-lg">
-                    U
-                </div>
-                <div class="flex-grow">
-                    <div class="flex items-center gap-2">
-                        <h3 class="text-sm font-bold text-gray-800">小鱼搬运工</h3>
-                        <span class="px-2 py-0.5 bg-gray-100 text-gray-500 text-[9px] font-bold rounded-full uppercase">普通</span>
-                    </div>
-                    <p class="text-[10px] text-gray-400 mt-0.5">ID: 10552 · 159****2231</p>
-                </div>
-                <div class="text-right">
-                    <p class="text-[10px] text-gray-400 leading-none">累计核销</p>
-                    <p class="text-xs font-bold text-gray-400 mt-1">0 张卡密</p>
-                </div>
-            </div>
-            <div class="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between">
-                <span class="text-[10px] text-gray-300">注册日期: 2024-05-18</span>
-                <div class="flex gap-2">
-                    <button class="px-3 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-lg">编辑权限</button>
-                    <button class="px-3 py-1.5 bg-red-50 text-red-500 text-[10px] font-bold rounded-lg">注销用户</button>
-                </div>
-            </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center py-12 text-gray-400">
+            <p class="text-sm">暂无用户数据</p>
         </div>
-
-        <!-- 用户项 3: 已注销/禁用状态 -->
-        <div class="bg-gray-50/50 rounded-3xl border border-gray-100 p-4 shadow-none opacity-60 relative overflow-hidden">
-            <div class="flex items-center gap-4 grayscale">
-                <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 font-bold text-lg">
-                    B
-                </div>
-                <div class="flex-grow">
-                    <div class="flex items-center gap-2">
-                        <h3 class="text-sm font-bold text-gray-400 line-through">违规用户_02</h3>
-                        <span class="px-2 py-0.5 bg-red-100 text-red-400 text-[9px] font-bold rounded-full uppercase">已封禁</span>
-                    </div>
-                    <p class="text-[10px] text-gray-400 mt-0.5 font-mono">该用户已被系统强制注销</p>
-                </div>
-                <div class="text-right">
-                    <svg class="w-5 h-5 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
-                </div>
-            </div>
-            <div class="mt-4 pt-3 border-t border-dashed border-gray-200 flex items-center justify-between">
-                <span class="text-[10px] text-gray-300 italic">操作日期: 05-19</span>
-                <button class="px-3 py-1.5 bg-gray-200 text-gray-500 text-[10px] font-bold rounded-lg">恢复账号</button>
-            </div>
-        </div>
+        {% endif %}
 
     </div>
-
-    <!-- 4. 加载更多按钮 -->
-    <button class="w-full py-4 text-gray-400 text-xs font-medium">查看更多用户数据...</button>
 
 </div>
+
+<script>
+    function setAdmin(userId) {
+        if (!confirm('确定要将该用户设为管理员吗？')) {
+            return;
+        }
+
+        fetch(`/admin/api/users/${userId}/set-admin`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            return response.json().then(err => Promise.reject(err));
+        })
+        .then(data => {
+            if (data.success) {
+                alert('设置成功');
+                window.location.reload();
+            } else {
+                alert(data.message || '设置失败');
+            }
+        })
+        .catch(error => {
+            alert(error.message || '设置失败，请重试');
+        });
+    }
+    
+    function removeAdmin(userId) {
+        if (!confirm('确定要取消该用户的管理员身份吗？')) {
+            return;
+        }
+
+        fetch(`/admin/api/users/${userId}/remove-admin`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            return response.json().then(err => Promise.reject(err));
+        })
+        .then(data => {
+            if (data.success) {
+                alert('取消成功');
+                window.location.reload();
+            } else {
+                alert(data.message || '取消失败');
+            }
+        })
+        .catch(error => {
+            alert(error.message || '取消失败，请重试');
+        });
+    }
+    
+    function deleteUser(userId) {
+        if (!confirm('⚠️ 警告！此操作非常危险！\n\n删除后该用户的所有数据将无法恢复。\n\n确定要删除这个用户吗？')) {
+            return;
+        }
+
+        fetch(`/admin/api/users/${userId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            return response.json().then(err => Promise.reject(err));
+        })
+        .then(data => {
+            if (data.success) {
+                alert('删除成功');
+                window.location.reload();
+            } else {
+                alert(data.message || '删除失败');
+            }
+        })
+        .catch(error => {
+            alert(error.message || '删除失败，请重试');
+        });
+    }
+</script>
 {% endblock %}

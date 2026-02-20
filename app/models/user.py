@@ -36,8 +36,8 @@ class User(UserMixin, db.Model):
     # 出生日期
     birthday = db.Column(db.Date, nullable=True)
 
-    # 与注册卡密的一对多关系
-    register_secrets = db.relationship('RegisterSecret', backref='user', lazy=True)
+    # 与注册卡密的一对多关系，级联删除
+    register_secrets = db.relationship('RegisterSecret', backref='user', lazy=True, cascade='all, delete-orphan')
 
     # 密码属性（只读）
     @property

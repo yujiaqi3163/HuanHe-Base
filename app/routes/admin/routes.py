@@ -312,8 +312,9 @@ def secrets():
     from datetime import datetime
     now = datetime.utcnow()
     
-    # 获取搜索关键词
+    # 获取搜索关键词和筛选状态
     search_keyword = request.args.get('search', '').strip()
+    status_filter = request.args.get('status', '').strip()
     
     # 查询卡密
     query = RegisterSecret.query
@@ -325,6 +326,20 @@ def secrets():
             (User.username.contains(search_keyword))
         )
     
+    # 状态筛选
+    if status_filter == 'unused':
+        # 未使用：is_used = False
+        query = query.filter_by(is_used=False)
+    elif status_filter == 'used':
+        # 已使用：is_used = True 且 user_id 不为 None
+        query = query.filter(RegisterSecret.is_used == True, RegisterSecret.user_id != None)
+    elif status_filter == 'expired':
+        # 已失效：已过期 或 已释放
+        query = query.filter(
+            ((RegisterSecret.is_used == True) & (RegisterSecret.expires_at != None) & (now > RegisterSecret.expires_at)) |
+            ((RegisterSecret.is_used == True) & (RegisterSecret.user_id == None))
+        )
+    
     # 按创建时间倒序
     secrets = query.order_by(RegisterSecret.created_at.desc()).all()
     
@@ -333,7 +348,7 @@ def secrets():
     unused_count = RegisterSecret.query.filter_by(is_used=False).count()
     released_count = RegisterSecret.query.filter_by(is_used=True, user_id=None).count()
     
-    return render_template('admin/admin_secrets.html', secrets=secrets, total_count=total_count, unused_count=unused_count, released_count=released_count, now=now)
+    return render_template('admin/admin_secrets.html', secrets=secrets, total_count=total_count, unused_count=unused_count, released_count=released_count, now=now, status_filter=status_filter)
 
 
 @bp.route('/api/secrets', methods=['POST'])
@@ -483,7 +498,93 @@ def api_release_secret(secret_id):
 @login_required
 def users():
     """用户列表管理页面"""
-    return render_template('admin/admin_users.html')
+    # 获取搜索关键词
+    search_keyword = request.args.get('search', '').strip()
+    
+    # 查询用户
+    query = User.query
+    
+    if search_keyword:
+        # 搜索用户名或邮箱
+        query = query.filter(
+            (User.username.contains(search_keyword)) | 
+            (User.email.contains(search_keyword))
+        )
+    
+    # 按创建时间倒序
+    users = query.order_by(User.created_at.desc()).all()
+    
+    # 计算统计数据
+    total_count = User.query.count()
+    
+    return render_template('admin/admin_users.html', users=users, total_count=total_count, search_keyword=search_keyword)
+
+
+@bp.route('/api/users/<int:user_id>/set-admin', methods=['POST'])
+@login_required
+def api_set_admin(user_id):
+    """设置用户为管理员"""
+    if not current_user.is_super_admin:
+        return jsonify({'success': False, 'message': '只有超级管理员才能执行此操作'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    
+    if user.is_super_admin:
+        return jsonify({'success': False, 'message': '不能修改超级管理员'}), 400
+    
+    user.is_admin = True
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': '设置成功'
+    })
+
+
+@bp.route('/api/users/<int:user_id>/remove-admin', methods=['POST'])
+@login_required
+def api_remove_admin(user_id):
+    """取消用户管理员身份"""
+    if not current_user.is_super_admin:
+        return jsonify({'success': False, 'message': '只有超级管理员才能执行此操作'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    
+    if user.is_super_admin:
+        return jsonify({'success': False, 'message': '不能修改超级管理员'}), 400
+    
+    user.is_admin = False
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': '取消成功'
+    })
+
+
+@bp.route('/api/users/<int:user_id>', methods=['DELETE'])
+@login_required
+def api_delete_user(user_id):
+    """删除用户"""
+    if not current_user.is_super_admin:
+        return jsonify({'success': False, 'message': '只有超级管理员才能执行此操作'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    
+    if user.is_super_admin:
+        return jsonify({'success': False, 'message': '不能删除超级管理员'}), 400
+    
+    if user.is_admin:
+        return jsonify({'success': False, 'message': '请先取消该用户的管理员身份'}), 400
+    
+    # 删除用户（级联删除会自动删除用户的卡密）
+    db.session.delete(user)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': '删除成功'
+    })
 
 
 @bp.route('/material-types')
