@@ -46,8 +46,23 @@ def save_image(file):
 @login_required
 def index():
     """管理后台首页"""
-    material_types = MaterialType.query.order_by(MaterialType.created_at.desc()).all()
-    return render_template('admin/admin_index.html', material_types=material_types)
+    # 统计数据
+    total_materials = Material.query.count()
+    unused_secrets = RegisterSecret.query.filter_by(is_used=False).count()
+    total_users = User.query.count()
+    
+    # 最新更新的素材（前3个，按updated_at倒序）
+    latest_materials = Material.query.order_by(Material.updated_at.desc()).limit(3).all()
+    
+    # 最新生成的卡密（前3个，按created_at倒序）
+    latest_secrets = RegisterSecret.query.order_by(RegisterSecret.created_at.desc()).limit(3).all()
+    
+    return render_template('admin/admin_index.html', 
+                          total_materials=total_materials,
+                          unused_secrets=unused_secrets,
+                          total_users=total_users,
+                          latest_materials=latest_materials,
+                          latest_secrets=latest_secrets)
 
 
 @bp.route('/materials')

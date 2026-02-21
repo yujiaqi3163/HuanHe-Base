@@ -9,10 +9,10 @@
         <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-3 text-white shadow-lg shadow-blue-100 flex flex-col justify-between">
             <div>
                 <p class="text-[10px] opacity-80 font-medium">总素材数</p>
-                <h3 class="text-lg font-black mt-0.5">1,284</h3>
+                <h3 class="text-lg font-black mt-0.5">{{ total_materials }}</h3>
             </div>
             <div class="mt-2 text-[9px] bg-white/20 w-fit px-1.5 py-0.5 rounded-md">
-                今日 +12
+                实时统计
             </div>
         </div>
 
@@ -20,10 +20,10 @@
         <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-3 text-white shadow-lg shadow-purple-100 flex flex-col justify-between">
             <div>
                 <p class="text-[10px] opacity-80 font-medium">未使用卡密</p>
-                <h3 class="text-lg font-black mt-0.5">456</h3>
+                <h3 class="text-lg font-black mt-0.5">{{ unused_secrets }}</h3>
             </div>
             <div class="mt-2 text-[9px] bg-white/20 w-fit px-1.5 py-0.5 rounded-md">
-                剩余 35%
+                库存
             </div>
         </div>
 
@@ -31,10 +31,10 @@
         <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-3 text-white shadow-lg shadow-emerald-100 flex flex-col justify-between">
             <div>
                 <p class="text-[10px] opacity-80 font-medium">用户总数</p>
-                <h3 class="text-lg font-black mt-0.5">892</h3>
+                <h3 class="text-lg font-black mt-0.5">{{ total_users }}</h3>
             </div>
             <div class="mt-2 text-[9px] bg-white/20 w-fit px-1.5 py-0.5 rounded-md">
-                活跃 +5
+                注册
             </div>
         </div>
     </div>
@@ -45,7 +45,7 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
             添加新素材
         </a>
-        <button class="flex-shrink-0 px-5 py-2.5 bg-white text-gray-700 border border-gray-100 rounded-2xl text-sm font-bold shadow-sm flex items-center gap-2 active:scale-95 transition-transform">
+        <button class="flex-shrink-0 px-5 py-2.5 bg-white text-gray-700 border border-gray-100 rounded-2xl text-sm font-bold shadow-sm flex items-center gap-2 active:scale-95 transition-transform" onclick="window.location.href='{{ url_for('admin.secrets') }}'">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
             批量生成卡密
         </button>
@@ -56,58 +56,50 @@
         </a>
     </div>
 
-    <!-- 3. 素材管理列表 (示例) -->
+    <!-- 3. 素材管理列表 -->
     <section class="space-y-4">
         <div class="flex items-center justify-between">
             <h2 class="text-lg font-bold text-gray-800">最新素材</h2>
-            <button class="text-sm text-blue-600 font-bold">全部</button>
+            <button class="text-sm text-blue-600 font-bold" onclick="window.location.href='{{ url_for('admin.materials') }}'">全部</button>
         </div>
         
         <div class="space-y-3">
-            <!-- 素材单项 -->
+            {% for material in latest_materials %}
             <div class="bg-white p-3 rounded-2xl border border-gray-100 flex items-center gap-3">
                 <div class="w-14 h-14 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                    <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=100" class="w-full h-full object-cover">
+                    {% set cover_image = material.images|selectattr('is_cover')|first %}
+                    {% if cover_image %}
+                    <img src="{{ cover_image.image_url }}" class="w-full h-full object-cover">
+                    {% else %}
+                    <div class="w-full h-full flex items-center justify-center bg-gray-100">
+                        <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z" /></svg>
+                    </div>
+                    {% endif %}
                 </div>
                 <div class="flex-grow">
-                    <h4 class="text-sm font-bold text-gray-800 line-clamp-1">极简智能手表展示图</h4>
-                    <p class="text-[10px] text-gray-400 mt-1">分类：数码配件 · 2024-05-20</p>
+                    <h4 class="text-sm font-bold text-gray-800 line-clamp-1">{{ material.title }}</h4>
+                    <p class="text-[10px] text-gray-400 mt-1">分类：{{ material.material_type.name if material.material_type else '未分类' }} · {{ material.updated_at.strftime('%Y-%m-%d') }}</p>
                 </div>
                 <div class="flex gap-2">
-                    <button class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <a href="{{ url_for('admin.material_edit', material_id=material.id) }}" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                    </button>
-                    <button class="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
+                    </a>
                 </div>
             </div>
-
-            <div class="bg-white p-3 rounded-2xl border border-gray-100 flex items-center gap-3">
-                <div class="w-14 h-14 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 text-gray-300 flex items-center justify-center italic text-[10px]">
-                    No Img
-                </div>
-                <div class="flex-grow">
-                    <h4 class="text-sm font-bold text-gray-800 line-clamp-1">复古相机胶片滤镜素材</h4>
-                    <p class="text-[10px] text-gray-400 mt-1">分类：虚拟素材 · 2024-05-18</p>
-                </div>
-                <div class="flex gap-2">
-                    <button class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                    </button>
-                    <button class="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
-                </div>
+            {% endfor %}
+            {% if not latest_materials %}
+            <div class="bg-white p-8 rounded-3xl border border-gray-100 text-center">
+                <p class="text-sm text-gray-500">暂无素材</p>
             </div>
+            {% endif %}
         </div>
     </section>
 
-    <!-- 4. 卡密管理预览 (示例) -->
+    <!-- 4. 卡密管理预览 -->
     <section class="space-y-4">
         <div class="flex items-center justify-between">
             <h2 class="text-lg font-bold text-gray-800">近期生成卡密</h2>
-            <button class="text-sm text-blue-600 font-bold">查看全部</button>
+            <button class="text-sm text-blue-600 font-bold" onclick="window.location.href='{{ url_for('admin.secrets') }}'">查看全部</button>
         </div>
 
         <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden">
@@ -120,24 +112,30 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
+                    {% for secret in latest_secrets %}
                     <tr>
                         <td class="px-4 py-4 text-center">
-                            <span class="inline-block w-2 h-2 rounded-full bg-green-500"></span>
-                        </td>
-                        <td class="px-2 py-4 font-mono text-xs text-gray-500">XY-9823-ASKL-01</td>
-                        <td class="px-4 py-4 text-right">
-                            <button class="text-red-500 text-xs font-bold">作废</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-4 py-4 text-center">
+                            {% if not secret.is_used %}
                             <span class="inline-block w-2 h-2 rounded-full bg-gray-300"></span>
+                            {% else %}
+                            <span class="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+                            {% endif %}
                         </td>
-                        <td class="px-2 py-4 font-mono text-xs text-gray-300 line-through">XY-1102-PPQZ-88</td>
+                        <td class="px-2 py-4 font-mono text-xs {% if secret.is_used %}text-gray-300 line-through{% else %}text-gray-500{% endif %}">{{ secret.secret }}</td>
                         <td class="px-4 py-4 text-right">
+                            {% if not secret.is_used %}
+                            <button class="text-red-500 text-xs font-bold" onclick="window.location.href='{{ url_for('admin.secrets') }}'">查看</button>
+                            {% else %}
                             <button class="text-gray-300 text-xs font-bold" disabled>已用</button>
+                            {% endif %}
                         </td>
                     </tr>
+                    {% endfor %}
+                    {% if not latest_secrets %}
+                    <tr>
+                        <td colspan="3" class="px-4 py-8 text-center text-gray-400 text-xs">暂无卡密</td>
+                    </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
