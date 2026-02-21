@@ -296,3 +296,16 @@ def api_get_latest_materials():
             'has_more': (page * per_page) < total_count
         }
     })
+
+
+@bp.route('/material/<int:material_id>')
+@login_required
+def material_detail(material_id):
+    """素材详情页面"""
+    material = Material.query.get_or_404(material_id)
+    
+    # 增加浏览量
+    material.view_count += 1
+    db.session.commit()
+    
+    return render_template('main/material_detail.html', material=material)

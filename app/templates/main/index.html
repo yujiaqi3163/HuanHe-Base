@@ -14,7 +14,7 @@
         <div id="carousel-wrapper" class="relative overflow-hidden touch-pan-y w-full">
             <div id="carousel-track" class="flex cursor-grab active:cursor-grabbing" style="will-change: transform;">
                 {% for material in hot_materials %}
-                <div class="carousel-slide shrink-0 w-full px-4" data-index="{{ loop.index0 }}">
+                <a href="{{ url_for('main.material_detail', material_id=material.id) }}" class="carousel-slide shrink-0 w-full px-4" data-index="{{ loop.index0 }}">
                     <div class="relative rounded-2xl overflow-hidden aspect-square shadow-md bg-gray-200">
                         {% set cover_image = material.images|selectattr('is_cover')|first %}
                         {% if cover_image %}
@@ -46,7 +46,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </a>
                 {% endfor %}
             </div>
         </div>
@@ -112,7 +112,7 @@
         
         <div class="grid grid-cols-2 gap-3" id="materials-grid">
             {% for material in latest_materials %}
-            <div class="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 pb-2">
+            <a href="{{ url_for('main.material_detail', material_id=material.id) }}" class="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 pb-2">
                 <div class="aspect-square bg-gray-100 relative">
                     {% set cover_image = material.images|selectattr('is_cover')|first %}
                     {% if cover_image %}
@@ -147,7 +147,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
             {% endfor %}
         </div>
         
@@ -303,7 +303,7 @@
             }
             
             return `
-                <div class="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 pb-2">
+                <a href="/material/${material.id}" class="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 pb-2">
                     <div class="aspect-square bg-gray-100 relative">
                         ${coverImgHtml}
                         <span class="absolute top-2 left-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm text-white text-[9px] font-bold rounded-lg">${material.material_type}</span>
@@ -330,7 +330,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </a>
             `;
         }
         
