@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, current_app  # 导入Flask相关模块
 from flask_login import login_required, current_user  # 导入登录相关模块
-from app.models import User, RegisterSecret, Material  # 导入数据模型
+from app.models import User, RegisterSecret, Material, UserMaterial, UserMaterialImage  # 导入数据模型
 from app import db  # 导入数据库
 import os
 from werkzeug.utils import secure_filename
@@ -31,6 +31,12 @@ def save_image(file):
     
     # 返回相对路径（用于数据库存储）
     return f'/static/uploads/{filename}'
+
+
+@bp.route('/api/test', methods=['GET', 'POST'])
+def api_test():
+    """测试API路由"""
+    return jsonify({'success': True, 'message': 'API正常工作'})
 
 
 @bp.route('/')
@@ -298,6 +304,34 @@ def api_get_latest_materials():
     })
 
 
+@bp.route('/my-materials')
+@login_required
+def my_materials():
+    """我的作品库页面"""
+    # 查询用户的二创素材，按创建时间倒序
+    user_materials = UserMaterial.query.filter_by(
+        user_id=current_user.id
+    ).order_by(UserMaterial.created_at.desc()).all()
+    
+    return render_template('main/my_materials.html', user_materials=user_materials)
+
+
+@bp.route('/my-material/<int:user_material_id>')
+@login_required
+def my_material_detail(user_material_id):
+    """我的素材详情页"""
+    user_material = UserMaterial.query.filter_by(
+        id=user_material_id,
+        user_id=current_user.id
+    ).first_or_404()
+    
+    # 增加浏览量
+    user_material.view_count += 1
+    db.session.commit()
+    
+    return render_template('main/my_material_detail.html', user_material=user_material)
+
+
 @bp.route('/material/<int:material_id>')
 @login_required
 def material_detail(material_id):
@@ -309,3 +343,133 @@ def material_detail(material_id):
     db.session.commit()
     
     return render_template('main/material_detail.html', material=material)
+
+
+@bp.route('/api/material/<int:material_id>/remix', methods=['POST'])
+@login_required
+def api_remix_material(material_id):
+    """素材二创API"""
+    print(f'=== 开始处理素材二创请求，素材ID: {material_id} ===')
+    
+    try:
+        from app.models import Material, UserMaterial, UserMaterialImage
+        from app.utils.material_remix import optimize_copywriting, get_random_css_recipe
+        import json
+        
+        # 获取原始素材
+        original_material = Material.query.get_or_404(material_id)
+        print(f'找到原始素材: {original_material.title}')
+        
+        # 1. 文案二创（使用DeepSeek）
+        original_description = original_material.description or ''
+        print(f'原文案长度: {len(original_description)}')
+        remix_description = optimize_copywriting(original_description)
+        print(f'二创文案长度: {len(remix_description)}')
+        
+        # 2. 创建用户二创素材
+        user_material = UserMaterial(
+            user_id=current_user.id,
+            original_material_id=material_id,
+            title=original_material.title,
+            description=remix_description,
+            original_description=original_description
+        )
+        
+        db.session.add(user_material)
+        db.session.flush()
+        print(f'创建用户素材成功，ID: {user_material.id}')
+        
+        # 3. 处理图片
+        images_data = []
+        for idx, img in enumerate(original_material.images):
+            # 获取随机CSS配方
+            recipe = get_random_css_recipe()
+            
+            # 创建二创图片记录
+            remix_img = UserMaterialImage(
+                user_material_id=user_material.id,
+                original_image_url=img.image_url,
+                image_url=img.image_url,
+                sort_order=idx,
+                is_cover=img.is_cover,
+                css_recipe=json.dumps(recipe, ensure_ascii=False)
+            )
+            db.session.add(remix_img)
+            images_data.append({
+                'original_url': img.image_url,
+                'css_recipe': recipe
+            })
+        
+        # 4. 提交数据库
+        db.session.commit()
+        print('数据库提交成功')
+        
+        # 5. 返回结果
+        result = {
+            'success': True,
+            'message': '素材二创成功',
+            'data': {
+                'user_material_id': user_material.id,
+                'title': user_material.title,
+                'description': user_material.description,
+                'original_description': user_material.original_description,
+                'images': images_data
+            }
+        }
+        print(f'返回结果: {result}')
+        return jsonify(result)
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f'素材二创异常: {str(e)}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'素材二创失败: {str(e)}'
+        }), 500
+
+
+@bp.route('/api/user-material/<int:user_material_id>/update-image', methods=['POST'])
+@login_required
+def api_update_user_material_image(user_material_id):
+    """更新用户二创素材图片（保存处理后的图片）"""
+    from app.models import UserMaterial, UserMaterialImage
+    from werkzeug.utils import secure_filename
+    import base64
+    from io import BytesIO
+    
+    user_material = UserMaterial.query.filter_by(
+        id=user_material_id,
+        user_id=current_user.id
+    ).first_or_404()
+    
+    try:
+        data = request.get_json()
+        
+        if not data or 'images' not in data:
+            return jsonify({'success': False, 'message': '参数错误'}), 400
+        
+        # 更新图片
+        for idx, img_data in enumerate(data['images']):
+            remix_img = UserMaterialImage.query.filter_by(
+                user_material_id=user_material_id,
+                sort_order=idx
+            ).first()
+            
+            if remix_img and 'image_url' in img_data:
+                remix_img.image_url = img_data['image_url']
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': '图片更新成功'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'更新失败: {str(e)}'
+        }), 500

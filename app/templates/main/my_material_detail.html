@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block header %}
+<!-- 沉浸式顶部导航 -->
+<header class="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-4 py-2 bg-white/60 backdrop-blur-xl border-b border-gray-100/50">
+    <a href="{{ url_for('main.my_materials') }}" class="w-8 h-8 flex items-center justify-center bg-white rounded-xl shadow-sm border border-gray-100 active:scale-90 transition-transform">
+        <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+        </svg>
+    </a>
+    <h1 class="text-lg font-black text-gray-900">我的素材</h1>
+    <div class="w-8"></div>
+</header>
+{% endblock %}
+
+{% block content %}
+<style>
+    /* 强制覆盖所有宽度限制 */
+    main {
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+    /* 隐藏底部导航栏 */
+    nav.fixed.bottom-6 {
+        display: none !important;
+    }
+    /* 移除body的底部padding */
+    body {
+        padding-bottom: 0 !important;
+    }
+</style>
+<!-- 顶部padding增加，避免被导航遮挡 -->
+<div class="pt-16 pb-4 space-y-6 overflow-x-hidden">
+
+    <!-- 1. 素材大图轮播 (1:1 比例) -->
+    <div class="space-y-3">
+        <!-- 轮播图容器 -->
+        <div id="carousel-wrapper" class="relative overflow-hidden touch-pan-y w-full">
+            <div id="carousel-track" class="flex cursor-grab active:cursor-grabbing" style="will-change: transform;">
+                {% for img in user_material.images %}
+                <div class="carousel-slide shrink-0 w-full px-4" data-index="{{ loop.index0 }}">
+                    <div class="relative rounded-[40px] overflow-hidden aspect-square shadow-2xl shadow-blue-100/50 border-4 border-white">
+                        <img src="{{ img.image_url }}" alt="素材预览 {{ loop.index }}" class="absolute inset-0 w-full h-full object-cover">
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- 轮播图指示器 -->
+        {% if user_material.images|length > 1 %}
+        <div class="flex justify-center gap-1.5 mt-2" id="carousel-dots">
+            {% for img in user_material.images %}
+            <div class="{% if loop.first %}w-4 h-1.5 bg-blue-600{% else %}w-1.5 h-1.5 bg-gray-200{% endif %} rounded-full transition-all duration-300"></div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 2. 标题、文案卡片 -->
+    <div class="px-4 space-y-4">
+        <div class="bg-white rounded-[32px] p-6 border border-gray-100 shadow-sm space-y-5">
+            <!-- 标题 -->
+            <div class="flex items-center gap-4">
+                <h2 class="text-sm font-bold text-gray-500 shrink-0">标题：</h2>
+                <h1 class="text-lg font-black text-blue-600 truncate flex-1">
+                    {{ user_material.title }}
+                </h1>
+            </div>
+            
+            <!-- 文案 -->
+            {% if user_material.description %}
+            <div class="space-y-3">
+                <div class="flex items-center gap-4">
+                    <h2 class="text-sm font-bold text-gray-500 shrink-0">文案：</h2>
+                </div>
+                <div class="relative">
+                    <p id="copy-text" class="text-gray-700 text-sm leading-relaxed bg-gray-50 p-4 rounded-2xl">
+                        {{ user_material.description }}
+                    </p>
+                    <button id="copy-btn" onclick="copyText()" class="absolute top-3 right-3 px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-full shadow-sm active:scale-90 transition-all flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        复制
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- 创建时间 -->
+            <div class="flex items-center gap-4">
+                <h2 class="text-sm font-bold text-gray-500 shrink-0">创建于：</h2>
+                <span class="text-sm text-gray-600">
+                    {{ user_material.created_at.strftime('%Y年%m月%d日 %H:%M') }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 下载操作面板 -->
+    <div class="px-4 space-y-4 pt-2">
+        <button onclick="downloadMaterial()" class="relative overflow-hidden group flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-green-600 to-emerald-700 py-4 rounded-[28px] shadow-lg shadow-green-200 active:scale-95 transition-all w-full">
+            <!-- 装饰光晕 -->
+            <div class="absolute -top-10 -right-10 w-20 h-20 bg-white/20 blur-2xl rounded-full group-hover:scale-150 transition-transform"></div>
+            
+            <span class="text-sm font-black text-white flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                下载素材
+            </span>
+            <span class="text-[9px] text-white/70 font-medium">保存到本地</span>
+        </button>
+    </div>
+
+</div>
+
+<script>
+    console.log('我的素材详情页脚本加载成功');
+    
+    // 完全复制主页轮播图逻辑
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('=== 开始初始化轮播图 ===');
+        
+        // 轮播图逻辑
+        const wrapper = document.getElementById('carousel-wrapper');
+        const track = document.getElementById('carousel-track');
+        const dotsContainer = document.getElementById('carousel-dots');
+        const dots = dotsContainer ? dotsContainer.children : [];
+        const originalSlides = Array.from(track.children);
+        const slideCount = originalSlides.length;
+        
+        console.log('wrapper:', wrapper);
+        console.log('track:', track);
+        console.log('slideCount:', slideCount);
+        console.log('wrapper.offsetWidth:', wrapper.offsetWidth);
+        
+        if (slideCount <= 1) {
+            console.log('只有一张图片，不需要轮播');
+            return;
+        }
+        
+        const firstClone = originalSlides[0].cloneNode(true);
+        const lastClone = originalSlides[slideCount - 1].cloneNode(true);
+        
+        track.appendChild(firstClone); 
+        track.insertBefore(lastClone, track.firstChild); 
+
+        const getStepWidth = () => wrapper.offsetWidth;
+        let step = getStepWidth();
+        console.log('step:', step);
+        
+        let currentIndex = 1; 
+        let startX = 0;
+        let currentTranslate = -currentIndex * step;
+        let prevTranslate = currentTranslate;
+        let isDragging = false;
+        let autoPlayTimer;
+
+        function setTransform(x) {
+            track.style.transform = `translateX(${x}px)`;
+        }
+
+        function updateDots() {
+            if (!dotsContainer) return;
+            let realIndex = currentIndex - 1;
+            if (realIndex < 0) realIndex = slideCount - 1;
+            if (realIndex >= slideCount) realIndex = 0;
+
+            Array.from(dots).forEach((dot, i) => {
+                dot.className = i === realIndex 
+                    ? "w-4 h-1.5 bg-blue-600 rounded-full transition-all duration-300"
+                    : "w-1.5 h-1.5 bg-gray-200 rounded-full transition-all duration-300";
+            });
+        }
+
+        track.addEventListener('touchstart', (e) => {
+            stopAuto();
+            startX = e.touches[0].clientX;
+            isDragging = true;
+            track.style.transition = 'none';
+        });
+
+        track.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            const diff = e.touches[0].clientX - startX;
+            currentTranslate = prevTranslate + diff;
+            setTransform(currentTranslate);
+        });
+
+        track.addEventListener('touchend', (e) => {
+            isDragging = false;
+            const movedBy = currentTranslate - prevTranslate;
+
+            if (movedBy < -step / 10) currentIndex++;
+            else if (movedBy > step / 10) currentIndex--;
+
+            scrollToIndex();
+            startAuto();
+        });
+
+        function scrollToIndex(animated = true) {
+            track.style.transition = animated ? 'transform 0.4s cubic-bezier(0.25, 1, 0.35, 1)' : 'none';
+            currentTranslate = -currentIndex * step;
+            setTransform(currentTranslate);
+            prevTranslate = currentTranslate;
+            updateDots();
+
+            if (animated) {
+                setTimeout(() => {
+                    if (currentIndex === 0) {
+                        currentIndex = slideCount;
+                        scrollToIndex(false);
+                    }
+                    if (currentIndex === slideCount + 1) {
+                        currentIndex = 1;
+                        scrollToIndex(false);
+                    }
+                }, 400);
+            }
+        }
+
+        function startAuto() {
+            stopAuto();
+            autoPlayTimer = setInterval(() => {
+                currentIndex++;
+                scrollToIndex();
+            }, 4000);
+        }
+
+        function stopAuto() {
+            clearInterval(autoPlayTimer);
+        }
+
+        setTransform(currentTranslate);
+        updateDots();
+        startAuto();
+        console.log('轮播图初始化完成');
+        
+        window.addEventListener('resize', () => {
+            step = getStepWidth();
+            currentTranslate = -currentIndex * step;
+            prevTranslate = currentTranslate;
+            setTransform(currentTranslate);
+        });
+    });
+
+    // 复制文案
+    async function copyText() {
+        const text = document.getElementById('copy-text').innerText;
+        const btn = document.getElementById('copy-btn');
+        
+        try {
+            await navigator.clipboard.writeText(text);
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = `
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                已复制
+            `;
+            btn.classList.replace('bg-blue-600', 'bg-green-600');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.classList.replace('bg-green-600', 'bg-blue-600');
+            }, 2000);
+        } catch (error) {
+            console.error('复制失败:', error);
+            alert('复制失败，请手动复制');
+        }
+    }
+
+    // 下载素材
+    async function downloadMaterial() {
+        // 下载第一张图片作为示例
+        const firstImage = document.querySelector('.carousel-slide img');
+        if (firstImage) {
+            try {
+                const response = await fetch(firstImage.src);
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'material_{{ user_material.id }}.png';
+                a.click();
+                URL.revokeObjectURL(url);
+                alert('下载成功！');
+            } catch (error) {
+                console.error('下载失败:', error);
+                alert('下载失败，请重试');
+            }
+        }
+    }
+</script>
+{% endblock %}

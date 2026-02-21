@@ -6,6 +6,11 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 # 导入用户登录管理扩展
 from flask_login import LoginManager
+# 导入环境变量加载
+from dotenv import load_dotenv
+
+# 加载环境变量
+load_dotenv()
 
 # 获取项目根目录路径
 basedir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
