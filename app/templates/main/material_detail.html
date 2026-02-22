@@ -173,8 +173,11 @@
             });
             
             if (!response.ok) {
+                // 先克隆响应，避免只能读取一次的问题
+                const clonedResponse = response.clone();
+                
                 try {
-                    const errorData = await response.json();
+                    const errorData = await clonedResponse.json();
                     console.error('API错误响应:', errorData);
                     
                     // 检查是否是429限流错误
@@ -184,9 +187,14 @@
                     
                     throw new Error(errorData.message || errorData.msg || `服务器错误: ${response.status}`);
                 } catch (jsonError) {
-                    const errorText = await response.text();
-                    console.error('API错误响应(文本):', errorText);
-                    throw new Error(`服务器错误: ${response.status}`);
+                    // 如果 JSON 解析失败，尝试读取文本
+                    try {
+                        const errorText = await response.text();
+                        console.error('API错误响应(文本):', errorText);
+                        throw new Error(`服务器错误: ${response.status}`);
+                    } catch (textError) {
+                        throw new Error(`服务器错误: ${response.status}`);
+                    }
                 }
             }
             
