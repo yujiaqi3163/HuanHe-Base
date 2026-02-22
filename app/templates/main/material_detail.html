@@ -173,9 +173,21 @@
             });
             
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('API错误响应:', errorText);
-                throw new Error(`服务器错误: ${response.status}`);
+                try {
+                    const errorData = await response.json();
+                    console.error('API错误响应:', errorData);
+                    
+                    // 检查是否是429限流错误
+                    if (response.status === 429 && errorData.msg) {
+                        throw new Error(errorData.msg);
+                    }
+                    
+                    throw new Error(errorData.message || errorData.msg || `服务器错误: ${response.status}`);
+                } catch (jsonError) {
+                    const errorText = await response.text();
+                    console.error('API错误响应(文本):', errorText);
+                    throw new Error(`服务器错误: ${response.status}`);
+                }
             }
             
             const result = await response.json();
@@ -192,11 +204,41 @@
             
         } catch (error) {
             console.error('二创失败:', error);
-            statusText.textContent = '二创失败：' + error.message;
-            statusText.classList.replace('text-blue-500', 'text-red-500');
-            isRemixing = false;
-            btn.disabled = false;
-            btn.classList.remove('opacity-70', 'cursor-not-allowed');
+            
+            const errorMsg = error.message || '二创失败';
+            
+            // 检查是否是限流错误（包含"等待"和"秒"）
+            const waitMatch = errorMsg.match(/等待(\d+)秒/);
+            if (waitMatch) {
+                const waitSeconds = parseInt(waitMatch[1]);
+                statusText.textContent = errorMsg;
+                statusText.classList.replace('text-blue-500', 'text-orange-500');
+                
+                // 禁用按钮，倒计时结束后恢复
+                btn.disabled = true;
+                btn.classList.add('opacity-70', 'cursor-not-allowed');
+                let countdown = waitSeconds;
+                
+                const countdownInterval = setInterval(() => {
+                    countdown--;
+                    if (countdown <= 0) {
+                        clearInterval(countdownInterval);
+                        statusText.textContent = '生成结果将自动保存至作品库';
+                        statusText.classList.replace('text-orange-500', 'text-gray-400');
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-70', 'cursor-not-allowed');
+                        isRemixing = false;
+                    } else {
+                        statusText.textContent = `请等待${countdown}秒后再试...`;
+                    }
+                }, 1000);
+            } else {
+                statusText.textContent = '二创失败：' + errorMsg;
+                statusText.classList.replace('text-blue-500', 'text-red-500');
+                isRemixing = false;
+                btn.disabled = false;
+                btn.classList.remove('opacity-70', 'cursor-not-allowed');
+            }
         }
     }
     
