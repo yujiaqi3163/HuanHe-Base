@@ -919,7 +919,7 @@ def api_remix_material(material_id):
 def api_get_task_status(task_id):
     """查询任务状态API"""
     from celery.result import AsyncResult
-    from app import celery_app
+    from celery_config import celery_app
     
     try:
         task = AsyncResult(task_id, app=celery_app)

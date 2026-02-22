@@ -1,7 +1,7 @@
 # Celery 异步任务模块
 import os
 import json
-from app import celery_app
+from celery_config import celery_app
 from app import create_app, db
 from app.models import Material, UserMaterial, UserMaterialImage, MaterialImage
 from app.utils.material_remix import optimize_copywriting, get_unique_css_recipes
