@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block header %}
+{% endblock %}
+
+{% block footer %}
+{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --neon-green: #10b981;
+        --terminal-black: #020617;
+    }
+
+    body { 
+        font-family: 'Inter', sans-serif; 
+        background-color: var(--terminal-black);
+        color: #e2e8f0;
+        min-height: 100vh;
+        padding-bottom: 0;
+    }
+
+    #matrix-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 0;
+        opacity: 0.4;
+        filter: blur(1px);
+    }
+
+    .cyber-panel {
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                    inset 0 0 20px rgba(16, 185, 129, 0.05);
+    }
+
+    .neon-btn {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .neon-btn:hover {
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+        transform: translateY(-2px);
+    }
+
+    .neon-btn:active {
+        transform: translateY(0);
+    }
+
+    .cyber-input {
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(71, 85, 105, 0.5);
+        transition: all 0.3s;
+    }
+
+    .cyber-input:focus {
+        border-color: var(--neon-green);
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+        outline: none;
+    }
+
+    .fade-in {
+        animation: fadeIn 0.6s ease-out forwards;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.98) translateY(10px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .mono-text { font-family: 'Courier New', monospace; }
+
+    input[type="radio"] {
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        border: 2px solid #334155;
+        border-radius: 50%;
+        cursor: pointer;
+        position: relative;
+    }
+    input[type="radio"]:checked {
+        border-color: var(--neon-green);
+    }
+    input[type="radio"]:checked::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 6px;
+        height: 6px;
+        background: var(--neon-green);
+        border-radius: 50%;
+        box-shadow: 0 0 8px var(--neon-green);
+    }
+
+    .back-button {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 10;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        color: #10b981;
+        padding: 6px 12px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .back-button:hover {
+        background: rgba(16, 185, 129, 0.2);
+        border-color: rgba(16, 185, 129, 0.5);
+        transform: scale(1.02);
+    }
+</style>
+
+<div class="py-14 px-3 relative z-10">
+    <canvas id="matrix-canvas"></canvas>
+
+    <div class="w-full max-w-3xl mx-auto fade-in">
+        <div class="relative p-4 sm:p-6 rounded-2xl cyber-panel overflow-hidden">
+            <a href="{{ url_for('main.index') }}" class="back-button flex items-center gap-2">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                返回
+            </a>
+            
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-[80px]"></div>
+            
+            <div class="text-center mb-6">
+                <h2 class="text-lg font-bold text-white tracking-tight">文本加密终端 <span class="text-emerald-500 text-sm">v2.4.0</span></h2>
+                <p class="text-slate-500 text-[10px] mt-1 tracking-tighter mono-text">安全文本混淆加密工具</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 mb-4">
+                <label class="group flex items-center p-2.5 rounded-xl bg-slate-900/40 border border-slate-800 cursor-pointer hover:border-emerald-500/50 transition-all">
+                    <input type="radio" name="encryptMode" value="1" checked>
+                    <div class="ml-2.5">
+                        <div class="text-xs font-bold text-slate-200">一级加密</div>
+                        <div class="text-[9px] text-slate-500">HTML实体编码</div>
+                    </div>
+                </label>
+                <label class="group flex items-center p-2.5 rounded-xl bg-slate-900/40 border border-slate-800 cursor-pointer hover:border-emerald-500/50 transition-all">
+                    <input type="radio" name="encryptMode" value="2">
+                    <div class="ml-2.5">
+                        <div class="text-xs font-bold text-slate-200">二级加密</div>
+                        <div class="text-[9px] text-slate-500">不可见干扰字符</div>
+                    </div>
+                </label>
+                <label class="group flex items-center p-2.5 rounded-xl bg-slate-900/40 border border-slate-800 cursor-pointer hover:border-emerald-500/50 transition-all">
+                    <input type="radio" name="encryptMode" value="3">
+                    <div class="ml-2.5">
+                        <div class="text-xs font-bold text-slate-200">三级加密</div>
+                        <div class="text-[9px] text-slate-500">编码+隐形双重复合</div>
+                    </div>
+                </label>
+                <label class="group flex items-center p-2.5 rounded-xl bg-slate-900/40 border border-slate-800 cursor-pointer hover:border-emerald-500/50 transition-all">
+                    <input type="radio" name="encryptMode" value="4">
+                    <div class="ml-2.5">
+                        <div class="text-xs font-bold text-slate-200">四级加密</div>
+                        <div class="text-[9px] text-slate-500">数学符号风格替换</div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="mb-4 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                <p class="text-[11px] font-bold text-emerald-400 mb-1 flex items-center">
+                    <span class="mr-1.5">💡</span> 使用建议：
+                </p>
+                <ul class="text-[10px] text-slate-400 space-y-0.5 leading-relaxed">
+                    <li class="flex items-start">
+                        <span class="text-emerald-500 mr-1.5">•</span>
+                        <span><strong class="text-slate-200">黄鱼：</strong>模式三或先模式二再数字加密</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-emerald-500 mr-1.5">•</span>
+                        <span><strong class="text-slate-200">QV：</strong>先模式二再数字加密</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="space-y-3">
+                <div class="relative">
+                    <textarea id="inputText" rows="3" class="w-full cyber-input rounded-xl p-3.5 text-slate-200 mono-text text-sm resize-none" placeholder="输入原始指令或文案..."></textarea>
+                    <div class="absolute bottom-2.5 right-3 text-[9px] text-slate-600 font-mono">INPUT</div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="convertText()" class="col-span-2 py-3 rounded-xl font-bold text-slate-900 bg-emerald-500 neon-btn shadow-lg shadow-emerald-500/20 text-sm">执行加密</button>
+                    <button onclick="copyResult()" class="py-3 rounded-xl font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 hover:bg-emerald-400/20 transition-all text-xs">复制</button>
+                </div>
+                <div class="relative">
+                    <textarea id="outputText" rows="3" readonly class="w-full bg-black/40 border border-emerald-500/10 rounded-xl p-3.5 text-emerald-400 mono-text text-sm resize-none" placeholder="等待输出..."></textarea>
+                    <div class="absolute top-2.5 right-3 flex gap-1.5">
+                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-500/40 animate-pulse"></div>
+                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-500/20"></div>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-t border-emerald-500/10">
+                    <p class="text-[10px] text-slate-500 flex items-center justify-center">
+                        <span class="mr-1.5">💡</span>
+                        混淆引流钩子加密，复制，发送，一步到位
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-2.5 rounded-xl bg-emerald-500 text-slate-900 font-bold text-sm shadow-2xl shadow-emerald-500/20 opacity-0 transition-all duration-500 translate-y-10 pointer-events-none z-50"></div>
+
+<script>
+    const canvas = document.getElementById('matrix-canvas');
+    const ctx = canvas.getContext('2d');
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+    const letters = "0123456789ABCDEFHIJKLMNOPRSTUVWXYZ";
+    const fontSize = 14;
+    const columns = width / fontSize;
+    const drops = Array(Math.floor(columns)).fill(1);
+
+    function drawMatrix() {
+        ctx.fillStyle = "rgba(2, 6, 23, 0.1)";
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = "#10b981";
+        ctx.font = fontSize + "px 'Courier New'";
+        for (let i = 0; i < drops.length; i++) {
+            const text = letters.charAt(Math.floor(Math.random() * letters.length));
+            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+            if (drops[i] * fontSize > height && Math.random() > 0.98) drops[i] = 0;
+            drops[i]++;
+        }
+    }
+    setInterval(drawMatrix, 50);
+
+    const SPECIAL_MAP = {'Q': '🆀', 'q': '🆀', '0': '𝟎', '1': '𝟣', '2': '𝟤', '3': '𝟛', '4': '𝟜', '5': '𝟝', '6': '𝟞', '7': '𝟟', '8': '𝟖', '9': '𝟗', 'A': '𝐀', 'a': '𝐚', 'B': '𝐁', 'b': '𝐛', 'C': '𝐂', 'c': '𝐜', 'D': '𝐃', 'd': '𝐝', 'E': '𝐄', 'e': '𝐞', 'F': '𝐅', 'f': '𝐟', 'G': '𝐆', 'g': '𝐠', 'H': '𝐇', 'h': '𝐡', 'I': '𝐈', 'i': '𝐢', 'J': '𝐉', 'j': '𝐣', 'K': '𝐊', 'k': '𝐤', 'L': '𝐋', 'l': '𝐥', 'M': '𝐌', 'm': '𝐦', 'N': '𝐍', 'n': '𝐧', 'O': '𝐎', 'o': '𝐨', 'P': '𝐏', 'p': '𝐩', 'R': '𝐑', 'r': '𝐫', 'S': '𝐒', 's': '𝐬', 'T': '𝐓', 't': '𝐭', 'U': '𝐔', 'u': '𝐮', 'V': '𝐕', 'v': '𝐯', 'W': '𝐖', 'w': '𝐰', 'X': '𝐗', 'x': '𝐱', 'Y': '𝐘', 'y': '𝐲', 'Z': '𝐙', 'z': '𝐳'};
+
+    function convertText() {
+        const input = document.getElementById('inputText').value;
+        if (!input) { showToast('未发现待处理数据'); return; }
+        const mode = document.querySelector('input[name="encryptMode"]:checked').value;
+        let result = '';
+
+        for (let char of input) {
+            const code = char.charCodeAt(0);
+            if (mode === '1') result += `&#x${code.toString(16)};`;
+            else if (mode === '2') result += char + '\u200B'.repeat(Math.floor(Math.random() * 10) + 5);
+            else if (mode === '3') result += `&#x${code.toString(16)};` + '\u200B'.repeat(5);
+            else if (mode === '4') result += SPECIAL_MAP[char] || char;
+        }
+        document.getElementById('outputText').value = result;
+        showToast('加密协议执行完毕');
+    }
+
+    function copyResult() {
+        const el = document.getElementById('outputText');
+        if (!el.value) return;
+        el.select();
+        document.execCommand('copy');
+        showToast('数据已同步至剪贴板');
+    }
+
+    function clearAll() {
+        document.getElementById('inputText').value = '';
+        document.getElementById('outputText').value = '';
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.remove('opacity-0', 'translate-y-10');
+        toast.classList.add('opacity-100', 'translate-y-0');
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'translate-y-10');
+            toast.classList.remove('opacity-100', 'translate-y-0');
+        }, 2500);
+    }
+
+    window.addEventListener('resize', () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    });
+</script>
+{% endblock %}

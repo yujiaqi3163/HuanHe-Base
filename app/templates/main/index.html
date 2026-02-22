@@ -61,18 +61,18 @@
 
     <!-- 2. 快捷功能入口 -->
     <div class="grid grid-cols-4 gap-2 px-4">
-        <div class="flex flex-col items-center space-y-1 active:scale-95 transition-transform">
+        <a href="https://uutool.cn/check-word/" target="_blank" class="flex flex-col items-center space-y-1 active:scale-95 transition-transform">
             <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM5.884 6.944a1 1 0 112.236-1.118l.447.894a1 1 0 01-2.236 1.118l-.447-.894zM14.116 6.944l-.447.894a1 1 0 11-2.236-1.118l.447-.894a1 1 0 112.236 1.118zM4.5 13.5a1 1 0 011-1h9a1 1 0 110 2h-9a1 1 0 01-1-1z" /></svg>
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             </div>
-            <span class="text-[11px] text-gray-600 font-medium">爆款分析</span>
-        </div>
-        <div class="flex flex-col items-center space-y-1 active:scale-95 transition-transform">
+            <span class="text-[11px] text-gray-600 font-medium">违禁词查询</span>
+        </a>
+        <a href="{{ url_for('main.text_encrypt') }}" class="flex flex-col items-center space-y-1 active:scale-95 transition-transform">
             <div class="w-12 h-12 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" /><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd" /></svg>
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
             </div>
-            <span class="text-[11px] text-gray-600 font-medium">关键词生成</span>
-        </div>
+            <span class="text-[11px] text-gray-600 font-medium">文本加密终端</span>
+        </a>
         <div class="flex flex-col items-center space-y-1 active:scale-95 transition-transform">
             <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center">
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" /></svg>

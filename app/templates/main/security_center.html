@@ -36,6 +36,24 @@
             </svg>
         </a>
 
+        <!-- 终端卡密 -->
+        <a href="{{ url_for('main.terminal_secret') }}" class="flex items-center justify-between px-5 py-4 active:bg-gray-50 transition-colors border-b border-gray-50">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-700">终端卡密</p>
+                    <p class="text-[11px] text-gray-400 mt-0.5">查看和续费您的加密终端权限</p>
+                </div>
+            </div>
+            <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+        </a>
+
         <!-- 设备绑定 -->
         <a href="{{ url_for('main.security_device') }}" class="flex items-center justify-between px-5 py-4 active:bg-gray-50 transition-colors border-b border-gray-50">
             <div class="flex items-center gap-3">

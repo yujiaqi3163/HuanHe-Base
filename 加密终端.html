@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小黄鱼 | 高级加密终端</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-green: #10b981;
+            --terminal-black: #020617;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--terminal-black);
+            color: #e2e8f0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* 矩阵背景层级优化 */
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            opacity: 0.4;
+            filter: blur(1px);
+        }
+
+        /* 高级毛玻璃效果 */
+        .cyber-panel {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                        inset 0 0 20px rgba(16, 185, 129, 0.05);
+        }
+
+        /* 按钮悬停发光 */
+        .neon-btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .neon-btn:hover {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .neon-btn:active {
+            transform: translateY(0);
+        }
+
+        /* 输入框呼吸效果 */
+        .cyber-input {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            transition: all 0.3s;
+        }
+
+        .cyber-input:focus {
+            border-color: var(--neon-green);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+            outline: none;
+        }
+
+        /* 页面切换动画 */
+        .fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .mono-text { font-family: 'Fira Code', monospace; }
+
+        /* 单选框美化 */
+        input[type="radio"] {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #334155;
+            border-radius: 50%;
+            cursor: pointer;
+            position: relative;
+        }
+        input[type="radio"]:checked {
+            border-color: var(--neon-green);
+        }
+        input[type="radio"]:checked::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 8px;
+            height: 8px;
+            background: var(--neon-green);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--neon-green);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+
+    <canvas id="matrix-canvas"></canvas>
+
+    <div id="login-page" class="w-full max-w-md z-10 fade-in">
+        <div class="p-8 rounded-3xl cyber-panel">
+            <div class="mb-8 text-center">
+                <div class="inline-block p-3 rounded-2xl bg-emerald-500/10 mb-4">
+                    <svg class="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-extrabold tracking-tight text-white mb-2">安全协议验证</h1>
+                <p class="text-slate-400 text-sm italic">一键加密钩子，防止同行举报，安心引流私域</p>
+            </div>
+            
+            <div id="error-message" class="mb-6 p-3 text-sm text-red-400 bg-red-900/20 border border-red-500/30 rounded-xl hidden text-center">
+                身份验证失败，请重新输入。
+            </div>
+
+            <form id="login-form" class="space-y-5">
+                <input type="password" id="cardKeyInput" 
+                       class="w-full cyber-input rounded-xl p-4 text-center tracking-[0.5em] text-emerald-400 font-bold"
+                       placeholder="••••••••••••" required>
+                <button type="submit" 
+                        class="w-full py-4 rounded-xl font-bold text-slate-900 bg-emerald-500 neon-btn shadow-lg shadow-emerald-500/20 uppercase tracking-widest text-sm">
+                    启动终端
+                </button>
+            </form>
+           <div class="mt-8 space-y-3 flex flex-col items-stretch w-full">
+                <button onclick="showDemoImage()" 
+                        class="block w-full py-4 px-6 rounded-xl text-base font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 hover:bg-emerald-400/20 transition-all duration-300 shadow-sm shadow-emerald-500/10">
+                    🔍 查看加密案例预览
+                </button>
+                <a href="https://kms.goofish.pro/xgj/L534qsj20Y/ka/FlU6zePj8iU3Hysel4IulyUMfjxK.jpg" 
+                target="_blank" 
+                class="block w-full py-4 px-6 rounded-xl text-base font-bold text-slate-300 bg-slate-800/50 border border-slate-700 hover:border-emerald-500/50 hover:text-emerald-400 transition-all duration-300 text-center">
+                    🛠️ 卡密联系客服 (zxds703)
+                </a>
+
+            </div>
+        </div>
+    </div>
+
+    <div id="tool-page" class="w-full max-w-3xl z-10 hidden fade-in">
+        <div class="relative p-6 sm:p-10 rounded-3xl cyber-panel overflow-hidden">
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-[80px]"></div>
+            
+            <div class="flex justify-between items-start mb-10">
+                <div>
+                    <h2 class="text-2xl font-bold text-white tracking-tight">小黄鱼三级环境加密终端 <span class="text-emerald-500">v2.4.0</span></h2>
+                    <p class="text-slate-500 text-xs mt-1 tracking-tighter mono-text">🌏小黄鱼最严厉的父亲-技术支持: zxds703<span class="text-emerald-500"></span></p>
+                </div>
+                <button id="logout-button" class="text-xs font-bold text-slate-500 hover:text-red-400 transition-colors py-2 px-4 border border-slate-700 rounded-lg hover:border-red-400/50">登出</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <label class="group flex items-center p-4 rounded-2xl bg-slate-900/40 border border-slate-800 cursor-pointer hover:border-emerald-500/50 transition-all">
+                    <input type="radio" name="encryptMode" value="1" checked>
+                    <div class="ml-4">
+                        <div class="text-sm font-bold text-slate-200">一级环境加密</div>
+                        <div class="text-[10px] text-slate-500">将文字编码为HTML实体</div>
+                    </div>
+                </label>
+                <label class="group flex items-center p-4 rounded-2xl bg-slate-900/40 border border-slate-800 cursor-pointer hover:border-emerald-500/50 transition-all">
+                    <input type="radio" name="encryptMode" value="2">
+                    <div class="ml-4">
+                        <div class="text-sm font-bold text-slate-200">二级环境加密</div>
+                        <div class="text-[10px] text-slate-500">插入不可见干扰字符</div>
+                    </div>
+                </label>
+                <label class="group flex items-center p-4 rounded-2xl bg-slate-900/40 border border-slate-800 cursor-pointer hover:border-emerald-500/50 transition-all">
+                    <input type="radio" name="encryptMode" value="3">
+                    <div class="ml-4">
+                        <div class="text-sm font-bold text-slate-200">三级环境加密</div>
+                        <div class="text-[10px] text-slate-500">编码+隐形双重复合</div>
+                    </div>
+                </label>
+                <label class="group flex items-center p-4 rounded-2xl bg-slate-900/40 border border-slate-800 cursor-pointer hover:border-emerald-500/50 transition-all">
+                    <input type="radio" name="encryptMode" value="4">
+                    <div class="ml-4">
+                        <div class="text-sm font-bold text-slate-200">四级环境加密</div>
+                        <div class="text-[10px] text-slate-500">数学符号风格替换</div>
+                    </div>
+                </label>
+            </div>
+            <div class="mb-6 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
+                <p class="text-sm font-bold text-emerald-400 mb-2 flex items-center">
+                    <span class="mr-2">💡</span> 使用建议：
+                </p>
+                <ul class="text-xs text-slate-400 space-y-1.5 leading-relaxed">
+                    <li class="flex items-start">
+                        <span class="text-emerald-500 mr-2">•</span>
+                        <span><strong class="text-slate-200">黄鱼使用：</strong>要么模式三，要么先模式二，再数字加密（模式三无法配合数字加密的）</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-emerald-500 mr-2">•</span>
+                        <span><strong class="text-slate-200">QV使用：</strong>先模式二，再数字加密</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="space-y-6">
+                <div class="relative">
+                    <textarea id="inputText" rows="4" class="w-full cyber-input rounded-2xl p-5 text-slate-200 mono-text resize-none" placeholder="输入原始指令或文案..."></textarea>
+                    <div class="absolute bottom-4 right-4 text-[10px] text-slate-600 font-mono">INPUT_BUFFER</div>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button onclick="convertText()" class="flex-[2] py-4 rounded-2xl font-bold text-slate-900 bg-emerald-500 neon-btn shadow-lg shadow-emerald-500/20">执行加密协议</button>
+                    <button onclick="copyResult()" class="flex-1 py-4 rounded-2xl font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 hover:bg-emerald-400/20 transition-all">复制结果</button>
+                    <button onclick="clearAll()" class="px-6 py-4 rounded-2xl font-semibold text-slate-500 hover:text-red-400 transition-all">清空</button>
+                </div>
+                <div class="relative">
+                    <textarea id="outputText" rows="4" readonly class="w-full bg-black/40 border border-emerald-500/10 rounded-2xl p-5 text-emerald-400 mono-text text-sm resize-none" placeholder="等待输出..."></textarea>
+                    <div class="absolute top-4 right-4 flex gap-2">
+                        <div class="w-2 h-2 rounded-full bg-emerald-500/40 animate-pulse"></div>
+                        <div class="w-2 h-2 rounded-full bg-emerald-500/20"></div>
+                    </div>
+                </div>
+                <div class="mt-6 pt-6 border-t border-emerald-500/10">
+                    <p class="text-xs text-slate-500 flex items-center justify-center">
+                        <span class="mr-2">💡</span>
+                        使用说明：混淆引流钩子加密，复制，发送，即可一步到位。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="imagePreview" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md hidden p-4" onclick="closeImagePreview()">
+        <div class="relative max-w-2xl w-full" onclick="event.stopPropagation()">
+            <img src="./例图.png" alt="案例演示" class="w-full rounded-3xl shadow-2xl border border-emerald-500/20">
+            <button onclick="closeImagePreview()" class="absolute -top-14 right-0 text-slate-400 hover:text-white text-4xl">×</button>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-3 rounded-2xl bg-emerald-500 text-slate-900 font-bold text-sm shadow-2xl shadow-emerald-500/20 opacity-0 transition-all duration-500 translate-y-10 pointer-events-none z-50"></div>
+
+    <script>
+        // Matrix 背景动画 (增强对比度)
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+        const letters = "0123456789ABCDEFHIJKLMNOPRSTUVWXYZ";
+        const fontSize = 14;
+        const columns = width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = "rgba(2, 6, 23, 0.1)";
+            ctx.fillRect(0, 0, width, height);
+            ctx.fillStyle = "#10b981";
+            ctx.font = fontSize + "px 'Fira Code'";
+            for (let i = 0; i < drops.length; i++) {
+                const text = letters.charAt(Math.floor(Math.random() * letters.length));
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > height && Math.random() > 0.98) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 50);
+
+        // 核心逻辑 (保持功能一致，优化交互)
+        const VALID_KEYS = [
+            "aR3nF9kL2pX7vB5qW", "M8jH4dF6sA1zC9xV", "T6yU5iK2oL8pM0nB", "Q1wE4rT7yU2iS9oP",
+            "Z5xN8mL2kP0jH7fD", "C3vB7nM0qW2eR5tY", "Xk9pL2mN5qR7wS3y", "A8bD4fG6hJ1kL9zX",
+            "P6oI9uY4tR2eW1qA", "L2kM5nB7vC9xZ1qW", "J8hG4fD2sA6eR9yU", "V7cX5zL3pO9iU1yT",
+            "N2mQ6wE8rT4yU1iP", "B4nM7kL9pO0iU8yT", "G6fD3sA1qW2eR4tY", "H9jU5yT6iL2oP1qA",
+            "K1oL8pM0nB7vC5xZ", "R4tY7yU9iS3oP6iU", "E2wQ4rT6yU8iS0oL", "W3eR5tY7uI9oP1qA",
+            "S6oP9iU2yT4rE6wQ", "D4fG6hJ1kL8zX9cV", "F7gH3jK5lM0nB2vC", "Y8uI0oP1qA2sD4fG",
+            "U1iS3oP5lK7jH9gF", "I9oP2lK4jH6gF8dS", "O0pL6kM8nB4vC2xZ", "T5rY7uI9oP1qA3sD",
+            "Z9xN7mL5kP3jH1fD", "X2cV4bN6mQ8wE0rT", "C6vB8nM0qW2eR4tY", "A1bD3fG5hJ7kL9zX",
+            "Q3wE5rT7yU9iS1oP", "L4kM6nB8vC0xZ2qW", "J2hG4fD6sA8eR0yU", "V5cX7zL9pO1iU3yT",
+            "N8mQ0wE2rT4yU6iP", "B6nM8kL0pO2iU4yT", "G4fD2sA0qW8eR6tY", "H7jU9yT1iL3oP5qA",
+            "K9oL1pM3nB5vC7xZ", "R2tY4yU6iS8oP0iU", "E8wQ0rT2yU4iS6oL", "W1eR3tY5uI7oP9qA",
+            "S4oP6iU8yT0rE2wQ", "D6fG8hJ0kL2zX4cV", "F9gH1jK3lM5nB7vC", "Y2uI4oP6qA8sD0fG",
+            "U7iS9oP1lK3jH5gF", "I3oP5lK7jH9gF1dS", "O6pL8kM0nB2vC4xZ", "T1rY3uI5oP7qA9sD",
+            "Z3xN5mL7kP9jH1fD", "X8cV0bN2mQ4wE6rT", "C2vB4nM6qW8eR0tY", "A9bD1fG3hJ5kL7zX",
+            "Q5wE7rT9yU1iS3oP", "L0kM2nB4vC6xZ8qW", "J6hG8fD0sA2eR4yU", "V1cX3zL5pO7iU9yT",
+            "N4mQ6wE8rT0yU2iP", "B2nM4kL6pO8iU0yT", "G8fD0sA2qW4eR6tY", "H3jU5yT7iL9oP1qA",
+            "K5oL7pM9nB1vC3xZ", "R6tY8yU0iS2oP4iU", "E4wQ6rT8yU0iS2oL", "W7eR9tY1uI3oP5qA",
+            "S0oP2iU4yT6rE8wQ", "D2fG4hJ6kL8zX0cV", "F5gH7jK9lM1nB3vC", "Y8uI0oP2qA4sD6fG",
+            "U3iS5oP7lK9jH1gF", "I7oP9lK1jH3gF5dS", "O2pL4kM6nB8vC0xZ", "T9rY1uI3oP5qA7sD",
+            "Z7xN9mL1kP3jH5fD", "X4cV6bN8mQ0wE2rT", "C8vB0nM2qW4eR6tY", "A5bD7fG9hJ1kL3zX",
+            "Q9wE1rT3yU5iS7oP", "L6kM8nB0vC2xZ4qW", "J0hG2fD4sA6eR8yU", "V3cX5zL7pO9iU1yT",
+            "N0mQ2wE4rT6yU8iP", "B8nM0kL2pO4iU6yT", "G2fD4sA6qW8eR0tY", "H1jU3yT5iL7oP9qA",
+            "K3oL5pM7nB9vC1xZ", "R8tY0yU2iS4oP6iU", "E0wQ2rT4yU6iS8oL", "W5eR7tY9uI1oP3qA",
+            "S2oP4iU6yT8rE0wQ", "D8fG0hJ2kL4zX6cV", "F1gH3jK5lM7nB9vC", "Y4uI6oP8qA0sD2fG",
+            "U9iS1oP3lK5jH7gF", "I5oP7lK9jH1gF3dS", "O4pL6kM8nB0vC2xZ", "T3rY5uI7oP9qA1sD"];
+        const SPECIAL_MAP = {'Q': '🆀', 'q': '🆀', '0': '𝟎', '1': '𝟣', '2': '𝟤', '3': '𝟛', '4': '𝟜', '5': '𝟝', '6': '𝟞', '7': '𝟟', '8': '𝟖', '9': '𝟗', 'A': '𝐀', 'a': '𝐚', 'B': '𝐁', 'b': '𝐛', 'C': '𝐂', 'c': '𝐜', 'D': '𝐃', 'd': '𝐝', 'E': '𝐄', 'e': '𝐞', 'F': '𝐅', 'f': '𝐟', 'G': '𝐆', 'g': '𝐠', 'H': '𝐇', 'h': '𝐡', 'I': '𝐈', 'i': '𝐢', 'J': '𝐉', 'j': '𝐣', 'K': '𝐊', 'k': '𝐤', 'L': '𝐋', 'l': '𝐥', 'M': '𝐌', 'm': '𝐦', 'N': '𝐍', 'n': '𝐧', 'O': '𝐎', 'o': '𝐨', 'P': '𝐏', 'p': '𝐩', 'R': '𝐑', 'r': '𝐫', 'S': '𝐒', 's': '𝐬', 'T': '𝐓', 't': '𝐭', 'U': '𝐔', 'u': '𝐮', 'V': '𝐕', 'v': '𝐯', 'W': '𝐖', 'w': '𝐰', 'X': '𝐗', 'x': '𝐱', 'Y': '𝐘', 'y': '𝐲', 'Z': '𝐙', 'z': '𝐳'};
+
+        const loginPage = document.getElementById('login-page');
+        const toolPage = document.getElementById('tool-page');
+
+        function checkAuth() {
+            const isAuth = sessionStorage.getItem('isAuth') === 'true';
+            loginPage.classList.toggle('hidden', isAuth);
+            toolPage.classList.toggle('hidden', !isAuth);
+        }
+        checkAuth();
+
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const key = document.getElementById('cardKeyInput').value.trim();
+            if (VALID_KEYS.includes(key)) {
+                sessionStorage.setItem('isAuth', 'true');
+                checkAuth();
+                showToast('身份识别成功 - 欢迎接入');
+            } else {
+                const err = document.getElementById('error-message');
+                err.classList.remove('hidden');
+                setTimeout(() => err.classList.add('hidden'), 3000);
+            }
+        });
+
+        document.getElementById('logout-button').addEventListener('click', () => {
+            sessionStorage.removeItem('isAuth');
+            checkAuth();
+        });
+
+        function convertText() {
+            const input = document.getElementById('inputText').value;
+            if (!input) { showToast('未发现待处理数据'); return; }
+            const mode = document.querySelector('input[name="encryptMode"]:checked').value;
+            let result = '';
+
+            for (let char of input) {
+                const code = char.charCodeAt(0);
+                if (mode === '1') result += `&#x${code.toString(16)};`;
+                else if (mode === '2') result += char + '\u200B'.repeat(Math.floor(Math.random() * 10) + 5);
+                else if (mode === '3') result += `&#x${code.toString(16)};` + '\u200B'.repeat(5);
+                else if (mode === '4') result += SPECIAL_MAP[char] || char;
+            }
+            document.getElementById('outputText').value = result;
+            showToast('加密协议执行完毕');
+        }
+
+        function copyResult() {
+            const el = document.getElementById('outputText');
+            if (!el.value) return;
+            el.select();
+            document.execCommand('copy');
+            showToast('数据已同步至剪贴板');
+        }
+
+        function clearAll() {
+            document.getElementById('inputText').value = '';
+            document.getElementById('outputText').value = '';
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.remove('opacity-0', 'translate-y-10');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-10');
+                toast.classList.remove('opacity-100', 'translate-y-0');
+            }, 2500);
+        }
+
+        function showDemoImage() { document.getElementById('imagePreview').classList.remove('hidden'); }
+        function closeImagePreview() { document.getElementById('imagePreview').classList.add('hidden'); }
+    </script>
+</body>
+</html>

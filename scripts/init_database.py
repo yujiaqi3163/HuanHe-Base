@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from app import create_app, db
 from app.models import (
     User, Config, MaterialType, Material, MaterialImage,
-    RegisterSecret, UserMaterial, UserMaterialImage
+    RegisterSecret, TerminalSecret, UserMaterial, UserMaterialImage, Permission
 )
 
 
@@ -29,7 +29,7 @@ def init_database():
         print('=' * 60)
         
         # 1. 创建所有表
-        print('\n[步骤 1/7] 创建数据库表...')
+        print('\n[步骤 1/8] 创建数据库表...')
         try:
             db.create_all()
             print('✅ 数据库表创建成功！')
@@ -38,28 +38,32 @@ def init_database():
             return False
         
         # 2. 迁移用户表
-        print('\n[步骤 2/7] 迁移用户表...')
+        print('\n[步骤 2/8] 迁移用户表...')
         migrate_user_table()
         
         # 3. 迁移设备锁字段
-        print('\n[步骤 3/7] 迁移设备锁字段...')
+        print('\n[步骤 3/8] 迁移设备锁字段...')
         migrate_device_lock()
         
         # 4. 迁移解绑申请字段
-        print('\n[步骤 4/7] 迁移解绑申请字段...')
+        print('\n[步骤 4/8] 迁移解绑申请字段...')
         migrate_unbind_request()
         
         # 5. 迁移卡密表
-        print('\n[步骤 5/7] 迁移卡密表...')
+        print('\n[步骤 5/8] 迁移卡密表...')
         migrate_secrets_table()
         
         # 6. 迁移用户素材表
-        print('\n[步骤 6/7] 迁移用户素材表...')
+        print('\n[步骤 6/8] 迁移用户素材表...')
         migrate_user_material_tables()
         
         # 7. 初始化配置表
-        print('\n[步骤 7/7] 初始化配置表...')
+        print('\n[步骤 7/8] 初始化配置表...')
         init_config_table()
+        
+        # 8. 初始化权限表
+        print('\n[步骤 8/8] 初始化权限表...')
+        init_permissions_table()
         
         print('\n' + '=' * 60)
         print('🎉 数据库初始化完成！')
@@ -190,6 +194,29 @@ def init_config_table():
         print('  ✅ 配置表初始化完成')
     except Exception as e:
         print(f'  ℹ️ 配置表初始化跳过: {e}')
+
+
+def init_permissions_table():
+    """初始化权限表"""
+    try:
+        default_permissions = [
+            ('material_manage', '素材管理', '管理素材库的素材'),
+            ('secret_manage', '卡密管理', '管理注册卡密'),
+            ('user_manage', '用户管理', '管理系统用户'),
+            ('type_manage', '分类管理', '管理素材分类'),
+            ('config_manage', '设置客服微信', '设置客服微信号')
+        ]
+        
+        for code, name, description in default_permissions:
+            if not Permission.query.filter_by(code=code).first():
+                perm = Permission(code=code, name=name, description=description)
+                db.session.add(perm)
+                print(f'  ✅ 添加默认权限: {name}')
+        
+        db.session.commit()
+        print('  ✅ 权限表初始化完成')
+    except Exception as e:
+        print(f'  ℹ️ 权限表初始化跳过: {e}')
 
 
 def create_sample_data():

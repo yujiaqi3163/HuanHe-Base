@@ -46,6 +46,12 @@ class User(UserMixin, db.Model):
 
     # 与注册卡密的一对多关系，级联删除
     register_secrets = db.relationship('RegisterSecret', backref='user', lazy=True, cascade='all, delete-orphan')
+    
+    # 与终端卡密的一对多关系，级联删除
+    terminal_secrets = db.relationship('TerminalSecret', backref='user', lazy=True, cascade='all, delete-orphan')
+    
+    # 与用户权限的一对多关系，级联删除
+    user_permissions = db.relationship('UserPermission', lazy=True, cascade='all, delete-orphan')
 
     # 密码属性（只读）
     @property
@@ -60,6 +66,24 @@ class User(UserMixin, db.Model):
     # 验证密码
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    # 检查用户是否有指定权限
+    def has_permission(self, permission_code):
+        """检查用户是否有指定权限"""
+        # 超级管理员拥有所有权限
+        if self.is_super_admin:
+            return True
+        
+        # 检查用户权限
+        for user_perm in self.user_permissions:
+            if user_perm.permission.code == permission_code:
+                return True
+        return False
+    
+    # 获取用户的所有权限
+    def get_permissions(self):
+        """获取用户的所有权限code列表"""
+        return [up.permission.code for up in self.user_permissions]
 
     # 打印时的显示格式
     def __repr__(self):

@@ -1,0 +1,45 @@
+{% extends "admin/admin_base.html" %}
+
+{% block admin_content %}
+<div class="px-4 py-6 space-y-6">
+    
+    <!-- 1. 页面头部 -->
+    <div class="space-y-4">
+        <div class="flex items-center gap-4">
+            <a href="{{ url_for('admin.users') }}" class="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+            </a>
+            <div>
+                <h2 class="text-xl font-bold text-gray-900">权限管理</h2>
+                <p class="text-sm text-gray-500 mt-1">用户: {{ user.username }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 权限列表 -->
+    <form method="post" class="space-y-4">
+        <div class="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">可访问权限</h3>
+            <div class="space-y-3">
+                {% for perm in all_permissions %}
+                <label class="flex items-center gap-3 p-4 rounded-2xl border border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer">
+                    <input type="checkbox" name="permissions" value="{{ perm.id }}" 
+                        {% if perm.id in user_permission_ids %}checked{% endif %}
+                        class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                    <div>
+                        <p class="font-bold text-gray-800">{{ perm.name }}</p>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ perm.description }}</p>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="flex justify-end gap-3">
+            <a href="{{ url_for('admin.users') }}" class="px-6 py-3 bg-gray-100 text-gray-600 font-bold rounded-2xl hover:bg-gray-200 transition-colors">取消</a>
+            <button type="submit" class="px-6 py-3 bg-blue-500 text-white font-bold rounded-2xl hover:bg-blue-600 active:scale-95 transition-all">保存权限</button>
+        </div>
+    </form>
+
+</div>
+{% endblock %}

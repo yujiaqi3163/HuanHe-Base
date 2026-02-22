@@ -9,8 +9,9 @@ from app.models import User, RegisterSecret
 import re
 
 
-def validate_password_strength(password):
+def validate_password_strength(form, field):
     """验证密码强度"""
+    password = field.data
     # 检查密码长度
     if len(password) < 8:
         raise ValidationError('密码长度至少为8位')

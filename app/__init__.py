@@ -96,6 +96,10 @@ def create_app(config_class=Config):
         
         # 如果用户已登录
         if current_user.is_authenticated:
+            # 超级管理员跳过设备锁验证
+            if current_user.is_super_admin:
+                return
+            
             # 优先从session获取device_id，如果没有则从cookie获取
             session_device_id = session.get('device_id')
             if not session_device_id:

@@ -3,14 +3,14 @@ from flask import Blueprint, render_template, redirect, url_for, flash, current_
 # 导入登录相关模块
 from flask_login import login_required, current_user
 # 导入装饰器
-from app.decorators import admin_required
+from app.decorators import admin_required, permission_required
 # 导入数据库模块
 from app import db
 # 导入表单
 from app.forms import MaterialForm
 from app.forms.material_type import MaterialTypeForm
 # 导入模型
-from app.models import Material, MaterialType, MaterialImage, RegisterSecret, User, Config, UserMaterial, UserMaterialImage
+from app.models import Material, MaterialType, MaterialImage, RegisterSecret, User, Config, UserMaterial, UserMaterialImage, Permission, UserPermission, TerminalSecret
 # 导入日志模块
 from app.utils.logger import get_logger
 # 导入文件处理模块
@@ -80,6 +80,7 @@ def index():
 @bp.route('/config/wechat', methods=['POST'])
 @login_required
 @admin_required
+@permission_required('config_manage')
 def update_wechat():
     """更新客服微信API"""
     try:
@@ -99,6 +100,7 @@ def update_wechat():
 @bp.route('/materials')
 @login_required
 @admin_required
+@permission_required('material_manage')
 def materials():
     """素材库管理页面"""
     material_types = MaterialType.query.order_by(MaterialType.created_at.desc()).all()
@@ -111,6 +113,7 @@ def materials():
 @bp.route('/api/materials')
 @login_required
 @admin_required
+@permission_required('material_manage')
 def api_get_materials():
     """分页获取素材API"""
     page = request.args.get('page', 1, type=int)
@@ -180,6 +183,7 @@ def api_get_materials():
 @bp.route('/materials/add', methods=['GET', 'POST'])
 @login_required
 @admin_required
+@permission_required('material_manage')
 def material_add():
     # 创建表单实例
     form = MaterialForm()
@@ -260,6 +264,7 @@ def material_add():
 @bp.route('/materials/edit/<int:material_id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
+@permission_required('material_manage')
 def material_edit(material_id):
     # 获取素材
     material = Material.query.get_or_404(material_id)
@@ -361,22 +366,34 @@ def material_edit(material_id):
 @bp.route('/secrets')
 @login_required
 @admin_required
+@permission_required('secret_manage')
 def secrets():
     """卡密管理页面"""
     from datetime import datetime
     now = datetime.utcnow()
     
+    # 获取卡密类型参数，默认为注册卡密
+    secret_type = request.args.get('type', 'register')
+    if secret_type not in ['register', 'terminal']:
+        secret_type = 'register'
+    
     # 获取搜索关键词和筛选状态
     search_keyword = request.args.get('search', '').strip()
     status_filter = request.args.get('status', '').strip()
     
+    # 根据卡密类型选择模型
+    if secret_type == 'register':
+        SecretModel = RegisterSecret
+    else:
+        SecretModel = TerminalSecret
+    
     # 查询卡密
-    query = RegisterSecret.query
+    query = SecretModel.query
     
     if search_keyword:
         # 搜索卡密文本 或 搜索关联用户的昵称
         query = query.outerjoin(User).filter(
-            (RegisterSecret.secret.contains(search_keyword)) | 
+            (SecretModel.secret.contains(search_keyword)) | 
             (User.username.contains(search_keyword))
         )
     
@@ -386,28 +403,29 @@ def secrets():
         query = query.filter_by(is_used=False)
     elif status_filter == 'used':
         # 已使用：is_used = True 且 user_id 不为 None
-        query = query.filter(RegisterSecret.is_used == True, RegisterSecret.user_id != None)
+        query = query.filter(SecretModel.is_used == True, SecretModel.user_id != None)
     elif status_filter == 'expired':
         # 已失效：已过期 或 已释放
         query = query.filter(
-            ((RegisterSecret.is_used == True) & (RegisterSecret.expires_at != None) & (now > RegisterSecret.expires_at)) |
-            ((RegisterSecret.is_used == True) & (RegisterSecret.user_id == None))
+            ((SecretModel.is_used == True) & (SecretModel.expires_at != None) & (now > SecretModel.expires_at)) |
+            ((SecretModel.is_used == True) & (SecretModel.user_id == None))
         )
     
     # 按创建时间倒序
-    secrets = query.order_by(RegisterSecret.created_at.desc()).all()
+    secrets = query.order_by(SecretModel.created_at.desc()).all()
     
     # 计算统计数据
-    total_count = RegisterSecret.query.count()
-    unused_count = RegisterSecret.query.filter_by(is_used=False).count()
-    released_count = RegisterSecret.query.filter_by(is_used=True, user_id=None).count()
+    total_count = SecretModel.query.count()
+    unused_count = SecretModel.query.filter_by(is_used=False).count()
+    released_count = SecretModel.query.filter_by(is_used=True, user_id=None).count()
     
-    return render_template('admin/admin_secrets.html', secrets=secrets, total_count=total_count, unused_count=unused_count, released_count=released_count, now=now, status_filter=status_filter)
+    return render_template('admin/admin_secrets.html', secrets=secrets, total_count=total_count, unused_count=unused_count, released_count=released_count, now=now, status_filter=status_filter, secret_type=secret_type)
 
 
 @bp.route('/api/secrets', methods=['POST'])
 @login_required
 @admin_required
+@permission_required('secret_manage')
 def api_create_secrets():
     """批量生成卡密API"""
     data = request.get_json()
@@ -417,6 +435,10 @@ def api_create_secrets():
     
     duration_type = data.get('duration_type', 'permanent')
     count = data.get('count', 1)
+    secret_type = data.get('type', 'register')
+    
+    if secret_type not in ['register', 'terminal']:
+        secret_type = 'register'
     
     # 验证数量
     try:
@@ -449,13 +471,23 @@ def api_create_secrets():
     # 定义字符集：数字+大小写字母
     charset = string.digits + string.ascii_letters
     
+    # 根据卡密类型选择模型和前缀
+    if secret_type == 'register':
+        SecretModel = RegisterSecret
+        prefix = 'sk-'
+        random_length = 18
+    else:
+        SecretModel = TerminalSecret
+        prefix = 'zdsk-'
+        random_length = 10
+    
     for _ in range(count):
-        # 生成唯一卡密：sk- + 18位随机数字+英文大小写
-        random_part = ''.join(random.choice(charset) for _ in range(18))
-        secret_str = f"sk-{random_part}"
+        # 生成唯一卡密
+        random_part = ''.join(random.choice(charset) for _ in range(random_length))
+        secret_str = f"{prefix}{random_part}"
         
         # 创建卡密（生成时不设置过期时间，使用时再计算）
-        secret = RegisterSecret(
+        secret = SecretModel(
             secret=secret_str,
             duration_type=duration_type,
             expires_at=None
@@ -465,9 +497,11 @@ def api_create_secrets():
     
     db.session.commit()
     
+    secret_type_name = '注册' if secret_type == 'register' else '终端'
+    
     return jsonify({
         'success': True,
-        'message': f'成功生成 {count} 个{duration_names[duration_type]}',
+        'message': f'成功生成 {count} 个{secret_type_name}{duration_names[duration_type]}',
         'data': {
             'secrets': secrets,
             'duration_type': duration_type,
@@ -480,9 +514,19 @@ def api_create_secrets():
 @bp.route('/api/secrets/<int:secret_id>', methods=['DELETE'])
 @login_required
 @admin_required
+@permission_required('secret_manage')
 def api_delete_secret(secret_id):
     """删除卡密API"""
-    secret = RegisterSecret.query.get_or_404(secret_id)
+    secret_type = request.args.get('type', 'register')
+    if secret_type not in ['register', 'terminal']:
+        secret_type = 'register'
+    
+    if secret_type == 'register':
+        SecretModel = RegisterSecret
+    else:
+        SecretModel = TerminalSecret
+    
+    secret = SecretModel.query.get_or_404(secret_id)
     
     # 已使用的卡密不能删除，除非已释放（user_id=None）
     if secret.is_used and secret.user_id is not None:
@@ -500,15 +544,25 @@ def api_delete_secret(secret_id):
 @bp.route('/api/secrets/delete-released', methods=['POST'])
 @login_required
 @admin_required
+@permission_required('secret_manage')
 def api_delete_released_secrets():
     """批量删除已释放的卡密API"""
+    secret_type = request.args.get('type', 'register')
+    if secret_type not in ['register', 'terminal']:
+        secret_type = 'register'
+    
+    if secret_type == 'register':
+        SecretModel = RegisterSecret
+    else:
+        SecretModel = TerminalSecret
+    
     from datetime import datetime
     now = datetime.utcnow()
     
     # 查询已释放的卡密（is_used=True 且 user_id=None）
-    released_secrets = RegisterSecret.query.filter(
-        RegisterSecret.is_used == True,
-        RegisterSecret.user_id == None
+    released_secrets = SecretModel.query.filter(
+        SecretModel.is_used == True,
+        SecretModel.user_id == None
     ).all()
     
     deleted_count = 0
@@ -530,9 +584,19 @@ def api_delete_released_secrets():
 @bp.route('/api/secrets/<int:secret_id>/release', methods=['POST'])
 @login_required
 @admin_required
+@permission_required('secret_manage')
 def api_release_secret(secret_id):
     """释放卡密API"""
-    secret = RegisterSecret.query.get_or_404(secret_id)
+    secret_type = request.args.get('type', 'register')
+    if secret_type not in ['register', 'terminal']:
+        secret_type = 'register'
+    
+    if secret_type == 'register':
+        SecretModel = RegisterSecret
+    else:
+        SecretModel = TerminalSecret
+    
+    secret = SecretModel.query.get_or_404(secret_id)
     
     # 检查卡密是否已被使用且未释放
     if not secret.is_used:
@@ -555,6 +619,7 @@ def api_release_secret(secret_id):
 @bp.route('/users')
 @login_required
 @admin_required
+@permission_required('user_manage')
 def users():
     """用户列表管理页面"""
     # 获取搜索关键词
@@ -579,9 +644,57 @@ def users():
     return render_template('admin/admin_users.html', users=users, total_count=total_count, search_keyword=search_keyword)
 
 
+@bp.route('/users/<int:user_id>/permissions', methods=['GET', 'POST'])
+@login_required
+@admin_required
+@permission_required('user_manage')
+def user_permissions(user_id):
+    """用户权限管理页面"""
+    if not current_user.is_super_admin:
+        flash('只有超级管理员才能管理权限', 'danger')
+        return redirect(url_for('admin.users'))
+    
+    user = User.query.get_or_404(user_id)
+    
+    if user.is_super_admin:
+        flash('不能修改超级管理员的权限', 'danger')
+        return redirect(url_for('admin.users'))
+    
+    # 获取所有权限
+    all_permissions = Permission.query.all()
+    
+    # 获取用户已有权限的ID集合
+    user_permission_ids = set(up.permission_id for up in user.user_permissions)
+    
+    if request.method == 'POST':
+        # 获取选中的权限
+        selected_permission_ids = request.form.getlist('permissions')
+        
+        # 删除用户所有权限
+        UserPermission.query.filter_by(user_id=user_id).delete()
+        
+        # 添加新权限
+        for perm_id in selected_permission_ids:
+            user_perm = UserPermission(
+                user_id=user_id,
+                permission_id=int(perm_id)
+            )
+            db.session.add(user_perm)
+        
+        db.session.commit()
+        flash('权限更新成功', 'success')
+        return redirect(url_for('admin.users'))
+    
+    return render_template('admin/admin_user_permissions.html', 
+                           user=user, 
+                           all_permissions=all_permissions,
+                           user_permission_ids=user_permission_ids)
+
+
 @bp.route('/api/users/<int:user_id>/set-admin', methods=['POST'])
 @login_required
 @admin_required
+@permission_required('user_manage')
 def api_set_admin(user_id):
     """设置用户为管理员"""
     if not current_user.is_super_admin:
@@ -604,6 +717,7 @@ def api_set_admin(user_id):
 @bp.route('/api/users/<int:user_id>/remove-admin', methods=['POST'])
 @login_required
 @admin_required
+@permission_required('user_manage')
 def api_remove_admin(user_id):
     """取消用户管理员身份"""
     if not current_user.is_super_admin:
@@ -626,6 +740,7 @@ def api_remove_admin(user_id):
 @bp.route('/api/users/<int:user_id>', methods=['DELETE'])
 @login_required
 @admin_required
+@permission_required('user_manage')
 def api_delete_user(user_id):
     """删除用户"""
     if not current_user.is_super_admin:
@@ -663,6 +778,7 @@ def api_delete_user(user_id):
 @bp.route('/api/users/<int:user_id>/unbind-device', methods=['POST'])
 @login_required
 @admin_required
+@permission_required('user_manage')
 def api_unbind_user_device(user_id):
     """解绑用户设备"""
     if not current_user.is_super_admin and not current_user.is_admin:
@@ -689,6 +805,7 @@ def api_unbind_user_device(user_id):
 @bp.route('/api/users/<int:user_id>/approve-unbind', methods=['POST'])
 @login_required
 @admin_required
+@permission_required('user_manage')
 def api_approve_unbind(user_id):
     """同意用户的解绑申请"""
     if not current_user.is_super_admin and not current_user.is_admin:
@@ -716,6 +833,7 @@ def api_approve_unbind(user_id):
 @bp.route('/api/users/<int:user_id>/reject-unbind', methods=['POST'])
 @login_required
 @admin_required
+@permission_required('user_manage')
 def api_reject_unbind(user_id):
     """拒绝用户的解绑申请"""
     if not current_user.is_super_admin and not current_user.is_admin:
@@ -742,6 +860,7 @@ def api_reject_unbind(user_id):
 @bp.route('/material-types')
 @login_required
 @admin_required
+@permission_required('type_manage')
 def material_types():
     """分类管理页面"""
     material_types = MaterialType.query.order_by(MaterialType.created_at.desc()).all()
@@ -751,6 +870,7 @@ def material_types():
 @bp.route('/api/material-types', methods=['POST'])
 @login_required
 @admin_required
+@permission_required('type_manage')
 def api_add_material_type():
     """添加分类API"""
     data = request.get_json()
@@ -788,6 +908,7 @@ def api_add_material_type():
 @bp.route('/api/material-types/<int:type_id>', methods=['GET'])
 @login_required
 @admin_required
+@permission_required('type_manage')
 def api_get_material_type(type_id):
     """获取单个分类API"""
     material_type = MaterialType.query.get_or_404(type_id)
@@ -804,6 +925,7 @@ def api_get_material_type(type_id):
 @bp.route('/api/material-types/<int:type_id>', methods=['PUT'])
 @login_required
 @admin_required
+@permission_required('type_manage')
 def api_update_material_type(type_id):
     """更新分类API"""
     material_type = MaterialType.query.get_or_404(type_id)
@@ -839,6 +961,7 @@ def api_update_material_type(type_id):
 @bp.route('/api/material-types/<int:type_id>', methods=['DELETE'])
 @login_required
 @admin_required
+@permission_required('type_manage')
 def api_delete_material_type(type_id):
     """删除分类API"""
     material_type = MaterialType.query.get_or_404(type_id)
@@ -859,6 +982,7 @@ def api_delete_material_type(type_id):
 @bp.route('/api/materials/<int:material_id>', methods=['DELETE'])
 @login_required
 @admin_required
+@permission_required('material_manage')
 def api_delete_material(material_id):
     """删除素材API"""
     material = Material.query.get_or_404(material_id)

@@ -40,6 +40,8 @@ def admin_required(f):
                 }), 403
             else:
                 flash('只有管理员才能访问此页面', 'danger')
+                if request.path.startswith('/admin'):
+                    return redirect(url_for('admin.index'))
                 return redirect(url_for('main.index'))
         
         # 权限验证通过
@@ -105,4 +107,53 @@ def device_required(f):
         return f(*args, **kwargs)
     
     return decorated_function
+
+
+def permission_required(permission_name):
+    """
+    权限检查装饰器 - 验证用户是否有指定权限
+    
+    使用示例：
+        @bp.route('/admin/materials')
+        @login_required
+        @admin_required
+        @permission_required('material_manage')
+        def materials_manage():
+            # 您的代码
+            pass
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # 检查用户是否已登录
+            if not current_user.is_authenticated:
+                return jsonify({
+                    'success': False,
+                    'message': '请先登录'
+                }), 401
+            
+            # 超级管理员拥有所有权限
+            if current_user.is_super_admin:
+                return f(*args, **kwargs)
+            
+            # 检查用户是否有指定权限
+            if not current_user.has_permission(permission_name):
+                logger.warning(f'用户 {current_user.username} 尝试访问无权限的资源: {permission_name}')
+                
+                # 判断是API请求还是普通请求
+                if request.path.startswith('/api/') or request.is_json:
+                    return jsonify({
+                        'success': False,
+                        'message': '您没有权限访问此页面'
+                    }), 403
+                else:
+                    flash('您没有权限访问此页面', 'danger')
+                    return redirect(url_for('admin.index'))
+            
+            # 权限验证通过
+            logger.debug(f'权限验证通过 - 用户: {current_user.username}, 权限: {permission_name}')
+            return f(*args, **kwargs)
+        
+        return decorated_function
+    return decorator
 

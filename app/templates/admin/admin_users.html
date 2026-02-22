@@ -97,6 +97,7 @@
                 <div class="flex gap-2">
                     {% if not user.is_super_admin %}
                         {% if user.is_admin %}
+                        <a href="{{ url_for('admin.user_permissions', user_id=user.id) }}" class="px-3 py-1.5 bg-purple-50 text-purple-600 text-[10px] font-bold rounded-lg active:scale-95 transition-transform">权限</a>
                         <button onclick="removeAdmin({{ user.id }})" class="px-3 py-1.5 bg-gray-50 text-gray-500 text-[10px] font-bold rounded-lg active:scale-95 transition-transform">取消管理员</button>
                         {% else %}
                         <button onclick="setAdmin({{ user.id }})" class="px-3 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-lg active:scale-95 transition-transform">设为管理员</button>
