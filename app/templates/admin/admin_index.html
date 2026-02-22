@@ -54,6 +54,11 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
             分类管理
         </a>
+        <!-- 新增：设置客服微信 -->
+        <button onclick="showWechatModal()" class="flex-shrink-0 px-5 py-2.5 bg-orange-50 text-orange-600 border border-orange-100 rounded-2xl text-sm font-bold shadow-sm flex items-center gap-2 active:scale-95 transition-transform">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+            设置客服微信
+        </button>
     </div>
 
     <!-- 3. 素材管理列表 -->
@@ -152,4 +157,82 @@
         <button class="w-full py-4 bg-gray-900 text-white font-bold rounded-2xl">确认保存</button>
     </div>
 </div>
+
+<!-- 设置客服微信弹出框 -->
+<div id="wechat-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+    <!-- 背景遮罩 -->
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="hideWechatModal()"></div>
+    
+    <!-- 弹出框内容 -->
+    <div class="relative bg-white rounded-[32px] p-6 w-full max-w-[380px] shadow-2xl">
+        <!-- 关闭按钮 -->
+        <button onclick="hideWechatModal()" class="absolute top-4 right-4 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+        
+        <!-- 标题 -->
+        <h3 class="text-xl font-black text-gray-800 mb-4">设置客服微信</h3>
+        
+        <!-- 输入框 -->
+        <div class="space-y-4">
+            <div class="relative">
+                <input type="text" id="wechat-input" value="{{ customer_service_wechat }}" placeholder="请输入客服微信号"
+                    class="w-full pl-4 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-400 focus:bg-white outline-none transition-all text-sm">
+            </div>
+            
+            <!-- 保存按钮 -->
+            <button onclick="saveWechat()" class="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold rounded-xl shadow-lg shadow-orange-200 active:scale-[0.98] transition-all">
+                保存设置
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showWechatModal() {
+        const modal = document.getElementById('wechat-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function hideWechatModal() {
+        const modal = document.getElementById('wechat-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = '';
+    }
+    
+    async function saveWechat() {
+        const wechat = document.getElementById('wechat-input').value.trim();
+        if (!wechat) {
+            alert('请输入客服微信号');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/admin/config/wechat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ wechat: wechat })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('保存成功！');
+                hideWechatModal();
+            } else {
+                alert('保存失败：' + result.message);
+            }
+        } catch (error) {
+            console.error('保存失败:', error);
+            alert('保存失败，请重试');
+        }
+    }
+</script>
 {% endblock %}

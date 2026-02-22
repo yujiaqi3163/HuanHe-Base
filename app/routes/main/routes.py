@@ -2,9 +2,18 @@ from flask import Blueprint, render_template, request, jsonify, redirect, url_fo
 from flask_login import login_required, current_user  # 导入登录相关模块
 from app.models import User, RegisterSecret, Material, UserMaterial, UserMaterialImage  # 导入数据模型
 from app import db  # 导入数据库
+from app.decorators import device_required  # 导入设备锁装饰器
+from app.utils.logger import get_logger  # 导入日志模块
+from sqlalchemy.orm import joinedload  # 导入joinedload用于预加载关联数据
 import os
+import random
+import base64
+import re
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
+from io import BytesIO
+
+logger = get_logger(__name__)
 
 bp = Blueprint('main', __name__)  # 创建主路由蓝图
 
@@ -14,8 +23,24 @@ def save_image(file):
     if not file:
         return None
     
-    # 生成安全的文件名
+    # 验证文件类型
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
     filename = secure_filename(file.filename)
+    file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+    
+    if file_ext not in allowed_extensions:
+        logger.error(f'不支持的文件格式: {file_ext}')
+        return None
+    
+    # 检查文件大小（限制10MB）
+    file.stream.seek(0, 2)
+    file_size = file.stream.tell()
+    file.stream.seek(0)
+    
+    if file_size > 10 * 1024 * 1024:
+        logger.error(f'文件大小超过10MB限制: {file_size / (1024 * 1024):.2f}MB')
+        return None
+    
     # 添加时间戳避免重名
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
     filename = timestamp + filename
@@ -33,6 +58,62 @@ def save_image(file):
     return f'/static/uploads/{filename}'
 
 
+def save_base64_image(base64_data):
+    """保存Base64编码的图片到本地并返回相对路径"""
+    if not base64_data:
+        return None
+    
+    # 验证数据格式
+    if not base64_data.startswith('data:image/'):
+        logger.error('无效的图片数据格式')
+        return None
+    
+    # 提取图片格式和数据
+    try:
+        header, data = base64_data.split(',', 1)
+        file_ext = header.split(';')[0].split('/')[1].lower()
+    except (IndexError, ValueError) as e:
+        logger.error(f'解析Base64数据失败: {e}')
+        return None
+    
+    # 验证文件类型
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+    if file_ext not in allowed_extensions:
+        logger.error(f'不支持的图片格式: {file_ext}')
+        return None
+    
+    try:
+        # 解码Base64
+        image_data = base64.b64decode(data)
+        
+        # 检查文件大小（限制10MB）
+        if len(image_data) > 10 * 1024 * 1024:
+            logger.error(f'图片大小超过10MB限制: {len(image_data) / (1024 * 1024):.2f}MB')
+            return None
+        
+        # 生成文件名
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        random_str = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+        filename = f'{timestamp}_{random_str}.{file_ext}'
+        
+        # 构建保存路径
+        upload_folder = os.path.join(current_app.root_path, 'static', 'uploads')
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder)
+        
+        # 保存文件
+        file_path = os.path.join(upload_folder, filename)
+        with open(file_path, 'wb') as f:
+            f.write(image_data)
+        
+        # 返回相对路径
+        return f'/static/uploads/{filename}'
+        
+    except Exception as e:
+        logger.error(f'保存Base64图片失败: {e}', exc_info=True)
+        return None
+
+
 @bp.route('/api/test', methods=['GET', 'POST'])
 def api_test():
     """测试API路由"""
@@ -42,6 +123,9 @@ def api_test():
 @bp.route('/')
 @login_required
 def index():
+    from datetime import datetime
+    from app.models import Config
+    
     users = User.query.all()  # 查询所有用户
     register_secrets = RegisterSecret.query.all()  # 查询所有注册卡密
     
@@ -54,7 +138,38 @@ def index():
     # 获取素材总数
     total_count = Material.query.count()
     
-    return render_template('main/index.html', users=users, register_secrets=register_secrets, hot_materials=hot_materials, latest_materials=latest_materials, total_count=total_count)  # 渲染首页模板
+    # 验证用户卡密有效性
+    is_membership_valid = False
+    now = datetime.utcnow()
+    
+    try:
+        # 获取用户卡密
+        secrets_list = list(current_user.register_secrets)
+        if not secrets_list:
+            secrets_list = RegisterSecret.query.filter_by(user_id=current_user.id).all()
+        
+        if secrets_list and len(secrets_list) > 0:
+            # 找到最新的一个
+            user_secret = sorted(secrets_list, key=lambda s: s.used_at or s.created_at, reverse=True)[0]
+            if user_secret.is_used:
+                if user_secret.duration_type == 'permanent':
+                    is_membership_valid = True
+                elif user_secret.expires_at and now <= user_secret.expires_at:
+                    is_membership_valid = True
+    except:
+        pass
+    
+    # 获取客服微信
+    customer_service_wechat = Config.get_value('customer_service_wechat', 'your_kefu_wechat')
+    
+    return render_template('main/index.html', 
+                           users=users, 
+                           register_secrets=register_secrets, 
+                           hot_materials=hot_materials, 
+                           latest_materials=latest_materials, 
+                           total_count=total_count,
+                           is_membership_valid=is_membership_valid,
+                           customer_service_wechat=customer_service_wechat)  # 渲染首页模板
 
 
 @bp.route('/profile')
@@ -129,6 +244,144 @@ def profile():
                            status_color=status_color,
                            status_badge=status_badge,
                            is_expired=is_expired)  # 渲染个人中心模板
+
+
+@bp.route('/security-center')
+@login_required
+def security_center():
+    """安全中心页面"""
+    return render_template('main/security_center.html')
+
+
+@bp.route('/security-secret')
+@login_required
+def security_secret():
+    """卡密信息页面"""
+    from datetime import datetime
+    now = datetime.utcnow()
+    
+    # 获取用户卡密信息
+    user_secret = None
+    secrets_list = None
+    
+    try:
+        secrets_list = list(current_user.register_secrets)
+    except:
+        pass
+    
+    if not secrets_list:
+        from app.models import RegisterSecret
+        try:
+            secrets_list = RegisterSecret.query.filter_by(user_id=current_user.id).all()
+        except:
+            secrets_list = []
+    
+    if secrets_list and len(secrets_list) > 0:
+        user_secret = secrets_list[0]
+        try:
+            user_secret = sorted(secrets_list, key=lambda s: s.used_at or s.created_at, reverse=True)[0]
+        except:
+            pass
+    
+    is_expired = True
+    if user_secret:
+        try:
+            if user_secret.is_used:
+                if user_secret.duration_type == 'permanent':
+                    is_expired = False
+                elif user_secret.expires_at and now <= user_secret.expires_at:
+                    is_expired = False
+        except:
+            pass
+    
+    return render_template('main/security_secret.html', 
+                           user_secret=user_secret, 
+                           is_expired=is_expired)
+
+
+@bp.route('/security-device')
+@login_required
+def security_device():
+    """设备绑定页面"""
+    return render_template('main/security_device.html')
+
+
+@bp.route('/security-password')
+@login_required
+def security_password():
+    """修改密码页面"""
+    return render_template('main/security_password.html')
+
+
+def validate_password_strength(password):
+    """验证密码强度"""
+    # 检查密码长度
+    if len(password) < 8:
+        return '密码长度至少为8位'
+    
+    # 检查是否包含大写字母
+    if not re.search(r'[A-Z]', password):
+        return '密码必须包含至少一个大写字母'
+    
+    # 检查是否包含小写字母
+    if not re.search(r'[a-z]', password):
+        return '密码必须包含至少一个小写字母'
+    
+    # 检查是否包含数字
+    if not re.search(r'[0-9]', password):
+        return '密码必须包含至少一个数字'
+    
+    # 检查是否包含特殊字符
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        return '密码必须包含至少一个特殊字符(!@#$%^&*(),.?":{}|<>)'
+    
+    return None
+
+
+@bp.route('/api/change-password', methods=['POST'])
+@login_required
+def api_change_password():
+    """修改密码API"""
+    try:
+        data = request.get_json()
+        
+        if not data or 'old_password' not in data or 'new_password' not in data:
+            return jsonify({'success': False, 'message': '缺少必要参数'}), 400
+        
+        old_password = data['old_password'].strip()
+        new_password = data['new_password'].strip()
+        
+        if not old_password:
+            return jsonify({'success': False, 'message': '请输入原密码'}), 400
+        
+        if not new_password:
+            return jsonify({'success': False, 'message': '请输入新密码'}), 400
+        
+        # 验证密码强度
+        strength_error = validate_password_strength(new_password)
+        if strength_error:
+            return jsonify({'success': False, 'message': strength_error}), 400
+        
+        if old_password == new_password:
+            return jsonify({'success': False, 'message': '新密码不能与原密码相同'}), 400
+        
+        if not current_user.check_password(old_password):
+            return jsonify({'success': False, 'message': '原密码错误'}), 400
+        
+        current_user.password = new_password
+        db.session.commit()
+        
+        logger.info(f'用户 {current_user.username} 修改密码成功')
+        
+        return jsonify({
+            'success': True,
+            'message': '密码修改成功'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'修改密码失败: {e}', exc_info=True)
+        return jsonify({'success': False, 'message': f'修改失败: {str(e)}'}), 500
 
 
 @bp.route('/api/renew-secret', methods=['POST'])
@@ -257,8 +510,11 @@ def api_get_latest_materials():
     # 计算偏移量
     offset = (page - 1) * per_page
     
-    # 查询素材
-    query = Material.query
+    # 查询素材 - 使用joinedload预加载关联数据，避免N+1查询
+    query = Material.query.options(
+        joinedload(Material.images),
+        joinedload(Material.material_type)
+    )
     
     # 添加搜索条件（按标题搜索）
     if search_keyword:
@@ -320,10 +576,16 @@ def my_materials():
 @login_required
 def my_material_detail(user_material_id):
     """我的素材详情页"""
-    user_material = UserMaterial.query.filter_by(
+    from sqlalchemy.orm import joinedload
+    
+    user_material = UserMaterial.query.options(
+        joinedload(UserMaterial.images)
+    ).filter_by(
         id=user_material_id,
         user_id=current_user.id
     ).first_or_404()
+    
+    logger.debug(f'用户素材详情页 - 素材ID: {user_material_id}, 标题: {user_material.title}, 图片数量: {len(user_material.images)}')
     
     # 增加浏览量
     user_material.view_count += 1
@@ -332,39 +594,164 @@ def my_material_detail(user_material_id):
     return render_template('main/my_material_detail.html', user_material=user_material)
 
 
+@bp.route('/api/user-material/<int:user_material_id>/download', methods=['POST'])
+@login_required
+@device_required
+def api_download_user_material(user_material_id):
+    """下载用户素材API - 增加下载计数"""
+    user_material = UserMaterial.query.filter_by(
+        id=user_material_id,
+        user_id=current_user.id
+    ).first_or_404()
+    
+    # 增加下载计数
+    user_material.download_count += 1
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': '下载计数更新成功',
+        'data': {
+            'download_count': user_material.download_count
+        }
+    })
+
+
+@bp.route('/api/user-material/<int:user_material_id>/delete', methods=['POST'])
+@login_required
+def api_delete_user_material(user_material_id):
+    """删除用户素材API"""
+    try:
+        from app.models import UserMaterial
+        
+        user_material = UserMaterial.query.filter_by(
+            id=user_material_id,
+            user_id=current_user.id
+        ).first_or_404()
+        
+        logger.info(f'删除用户素材，素材ID: {user_material_id}，标题: {user_material.title}')
+        
+        # 删除素材（级联删除会自动删除关联的图片）
+        db.session.delete(user_material)
+        db.session.commit()
+        
+        logger.info(f'用户素材删除成功，素材ID: {user_material_id}')
+        
+        return jsonify({
+            'success': True,
+            'message': '删除成功'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'删除用户素材失败: {str(e)}', exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': f'删除失败: {str(e)}'
+        }), 500
+
+
+@bp.route('/api/upload-image', methods=['POST'])
+@login_required
+@device_required
+def api_upload_image():
+    """上传处理后的图片API"""
+    try:
+        data = request.get_json()
+        
+        if not data or 'image' not in data:
+            return jsonify({'success': False, 'message': '缺少图片数据'}), 400
+        
+        logger.debug('开始上传处理后的图片')
+        
+        # 保存Base64图片
+        image_url = save_base64_image(data['image'])
+        
+        if not image_url:
+            return jsonify({'success': False, 'message': '图片保存失败'}), 500
+        
+        logger.info(f'图片保存成功: {image_url}')
+        
+        return jsonify({
+            'success': True,
+            'message': '上传成功',
+            'data': {
+                'image_url': image_url
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f'上传图片失败: {str(e)}', exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': f'上传失败: {str(e)}'
+        }), 500
+
+
 @bp.route('/material/<int:material_id>')
 @login_required
 def material_detail(material_id):
     """素材详情页面"""
+    from datetime import datetime
+    from app.models import Config
+    
     material = Material.query.get_or_404(material_id)
+    
+    # 验证用户卡密有效性
+    is_membership_valid = False
+    now = datetime.utcnow()
+    
+    try:
+        # 获取用户卡密
+        secrets_list = list(current_user.register_secrets)
+        if not secrets_list:
+            secrets_list = RegisterSecret.query.filter_by(user_id=current_user.id).all()
+        
+        if secrets_list and len(secrets_list) > 0:
+            # 找到最新的一个
+            user_secret = sorted(secrets_list, key=lambda s: s.used_at or s.created_at, reverse=True)[0]
+            if user_secret.is_used:
+                if user_secret.duration_type == 'permanent':
+                    is_membership_valid = True
+                elif user_secret.expires_at and now <= user_secret.expires_at:
+                    is_membership_valid = True
+    except:
+        pass
+    
+    # 获取客服微信
+    customer_service_wechat = Config.get_value('customer_service_wechat', 'your_kefu_wechat')
     
     # 增加浏览量
     material.view_count += 1
     db.session.commit()
     
-    return render_template('main/material_detail.html', material=material)
+    return render_template('main/material_detail.html', 
+                           material=material,
+                           is_membership_valid=is_membership_valid,
+                           customer_service_wechat=customer_service_wechat)
 
 
 @bp.route('/api/material/<int:material_id>/remix', methods=['POST'])
 @login_required
+@device_required
 def api_remix_material(material_id):
     """素材二创API"""
-    print(f'=== 开始处理素材二创请求，素材ID: {material_id} ===')
+    logger.info(f'开始处理素材二创请求，素材ID: {material_id}')
     
     try:
         from app.models import Material, UserMaterial, UserMaterialImage
-        from app.utils.material_remix import optimize_copywriting, get_random_css_recipe
+        from app.utils.material_remix import optimize_copywriting, get_unique_css_recipes
         import json
         
         # 获取原始素材
         original_material = Material.query.get_or_404(material_id)
-        print(f'找到原始素材: {original_material.title}')
+        logger.debug(f'找到原始素材: {original_material.title}')
         
         # 1. 文案二创（使用DeepSeek）
         original_description = original_material.description or ''
-        print(f'原文案长度: {len(original_description)}')
+        logger.debug(f'原文案长度: {len(original_description)}')
         remix_description = optimize_copywriting(original_description)
-        print(f'二创文案长度: {len(remix_description)}')
+        logger.debug(f'二创文案长度: {len(remix_description)}')
         
         # 2. 创建用户二创素材
         user_material = UserMaterial(
@@ -377,13 +764,16 @@ def api_remix_material(material_id):
         
         db.session.add(user_material)
         db.session.flush()
-        print(f'创建用户素材成功，ID: {user_material.id}')
+        logger.info(f'创建用户素材成功，ID: {user_material.id}')
         
-        # 3. 处理图片
+        # 3. 处理图片 - 确保每张图片使用不同的CSS配方
         images_data = []
+        # 先获取所有不重复的CSS配方
+        recipes = get_unique_css_recipes(len(original_material.images))
+        
         for idx, img in enumerate(original_material.images):
-            # 获取随机CSS配方
-            recipe = get_random_css_recipe()
+            # 使用不重复的CSS配方
+            recipe = recipes[idx]
             
             # 创建二创图片记录
             remix_img = UserMaterialImage(
@@ -400,9 +790,11 @@ def api_remix_material(material_id):
                 'css_recipe': recipe
             })
         
+        logger.debug(f'图片处理完成，使用了 {len(recipes)} 个不重复的CSS配方')
+        
         # 4. 提交数据库
         db.session.commit()
-        print('数据库提交成功')
+        logger.debug('数据库提交成功')
         
         # 5. 返回结果
         result = {
@@ -416,14 +808,12 @@ def api_remix_material(material_id):
                 'images': images_data
             }
         }
-        print(f'返回结果: {result}')
+        logger.debug(f'返回结果: {result}')
         return jsonify(result)
         
     except Exception as e:
         db.session.rollback()
-        print(f'素材二创异常: {str(e)}')
-        import traceback
-        traceback.print_exc()
+        logger.error(f'素材二创异常: {str(e)}', exc_info=True)
         return jsonify({
             'success': False,
             'message': f'素材二创失败: {str(e)}'

@@ -3,6 +3,9 @@ import os
 import openai
 import random
 import string
+from app.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def generate_random_string(length=8):
@@ -21,7 +24,7 @@ def optimize_copywriting(original_text):
     api_base = os.environ.get("DEEPSEEK_API_BASE") or "https://api.deepseek.com"
     
     if not api_key:
-        print("未配置DeepSeek API Key，返回原文案")
+        logger.warning("未配置DeepSeek API Key，返回原文案")
         return original_text
     
     # 设置API
@@ -59,18 +62,19 @@ def optimize_copywriting(original_text):
             temperature=0.7,
             top_p=0.9,
             max_tokens=1000,
-            stream=False
+            stream=False,
+            timeout=30  # 添加30秒超时，防止API响应慢导致请求堆积
         )
 
         # 提取回复内容
         if response and 'choices' in response and len(response['choices']) > 0:
             return response.choices[0].message.content.strip()
         else:
-            print("API返回格式异常，返回原文案")
+            logger.warning("API返回格式异常，返回原文案")
             return original_text
 
     except Exception as e:
-        print(f"DeepSeek API调用失败: {str(e)}")
+        logger.error(f"DeepSeek API调用失败: {str(e)}", exc_info=True)
         # 返回原文案作为备用
         return original_text
 
@@ -120,9 +124,28 @@ CSS_RECIPES = [
 ]
 
 
-def get_random_css_recipe():
-    """获取随机CSS混合配方"""
-    return random.choice(CSS_RECIPES)
+def get_random_css_recipe(exclude_recipes=None):
+    """获取随机CSS混合配方，可排除已使用的配方"""
+    if exclude_recipes is None:
+        exclude_recipes = []
+    
+    available_recipes = [r for r in CSS_RECIPES if r not in exclude_recipes]
+    
+    if not available_recipes:
+        available_recipes = CSS_RECIPES
+    
+    return random.choice(available_recipes)
+
+
+def get_unique_css_recipes(count):
+    """获取指定数量的不重复CSS配方"""
+    selected_recipes = []
+    
+    for i in range(count):
+        recipe = get_random_css_recipe(selected_recipes)
+        selected_recipes.append(recipe)
+    
+    return selected_recipes
 
 
 def generate_remix_html(image_url, recipe):

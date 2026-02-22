@@ -10,6 +10,8 @@ from app.models.material import Material
 from app.models.material_image import MaterialImage
 # 导入用户二创素材模型
 from app.models.user_material import UserMaterial, UserMaterialImage
+# 导入配置模型
+from app.models.config import Config
 
 # 导出模型，方便其他模块使用
-__all__ = ['User', 'RegisterSecret', 'MaterialType', 'Material', 'MaterialImage', 'UserMaterial', 'UserMaterialImage']
+__all__ = ['User', 'RegisterSecret', 'MaterialType', 'Material', 'MaterialImage', 'UserMaterial', 'UserMaterialImage', 'Config']

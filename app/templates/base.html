@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AI 闲鱼素材库</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
@@ -70,6 +71,7 @@
         {% block content %}{% endblock %}
     </main>
 
+    {% block footer %}
     <!-- 3. 底部功能导航栏 (浅色磨砂胶囊设计) -->
     <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-sm:w-[92%] max-w-sm bg-white/80 backdrop-blur-2xl rounded-[28px] px-2 py-2 flex justify-around items-center z-50 shadow-xl shadow-gray-200/50 border border-white/50 safe-area-bottom">
         
@@ -112,6 +114,63 @@
             <span class="text-[8px] font-black mt-0.5">我的</span>
         </a>
     </nav>
+    {% endblock %}
+
+    <script>
+        // 生成或获取设备ID
+        function getDeviceId() {
+            let deviceId = localStorage.getItem('device_id');
+            if (!deviceId) {
+                // 生成新的设备ID
+                const timestamp = Date.now().toString(36);
+                const random = Math.random().toString(36).substring(2, 15);
+                deviceId = timestamp + '_' + random;
+                localStorage.setItem('device_id', deviceId);
+                console.log('✅ 新设备ID生成:', deviceId);
+            } else {
+                console.log('✅ 使用现有设备ID:', deviceId);
+            }
+            return deviceId;
+        }
+
+        // 保存设备ID到服务器session
+        async function saveDeviceIdToSession() {
+            const deviceId = getDeviceId();
+            try {
+                const response = await fetch('/auth/save-device-id', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ device_id: deviceId })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    console.log('✅ 设备ID已保存到session');
+                }
+            } catch (error) {
+                console.log('❌ 保存设备ID失败:', error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // 保存设备ID到session
+            saveDeviceIdToSession();
+            
+            // 消息自动消失
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message, index) {
+                setTimeout(function() {
+                    message.style.transition = 'opacity 0.5s, transform 0.5s';
+                    message.style.opacity = '0';
+                    message.style.transform = 'translateY(-10px)';
+                    setTimeout(function() {
+                        message.remove();
+                    }, 500);
+                }, 5000 + index * 500);
+            });
+        });
+    </script>
 
 </body>
 </html>

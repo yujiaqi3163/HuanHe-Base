@@ -2,17 +2,24 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, current_app, request, jsonify
 # 导入登录相关模块
 from flask_login import login_required, current_user
+# 导入装饰器
+from app.decorators import admin_required
 # 导入数据库模块
 from app import db
 # 导入表单
 from app.forms import MaterialForm
 from app.forms.material_type import MaterialTypeForm
 # 导入模型
-from app.models import Material, MaterialType, MaterialImage, RegisterSecret, User
+from app.models import Material, MaterialType, MaterialImage, RegisterSecret, User, Config, UserMaterial, UserMaterialImage
+# 导入日志模块
+from app.utils.logger import get_logger
 # 导入文件处理模块
 import os
 from werkzeug.utils import secure_filename
 from datetime import datetime
+from sqlalchemy.orm import joinedload  # 导入joinedload用于预加载关联数据
+
+logger = get_logger(__name__)
 
 # 创建管理后台路由蓝图
 bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -44,6 +51,7 @@ def save_image(file):
 
 @bp.route('/')
 @login_required
+@admin_required
 def index():
     """管理后台首页"""
     # 统计数据
@@ -57,16 +65,40 @@ def index():
     # 最新生成的卡密（前3个，按created_at倒序）
     latest_secrets = RegisterSecret.query.order_by(RegisterSecret.created_at.desc()).limit(3).all()
     
+    # 获取客服微信
+    customer_service_wechat = Config.get_value('customer_service_wechat', 'your_kefu_wechat')
+    
     return render_template('admin/admin_index.html', 
                           total_materials=total_materials,
                           unused_secrets=unused_secrets,
                           total_users=total_users,
                           latest_materials=latest_materials,
-                          latest_secrets=latest_secrets)
+                          latest_secrets=latest_secrets,
+                          customer_service_wechat=customer_service_wechat)
+
+
+@bp.route('/config/wechat', methods=['POST'])
+@login_required
+@admin_required
+def update_wechat():
+    """更新客服微信API"""
+    try:
+        data = request.get_json()
+        wechat = data.get('wechat', '').strip()
+        
+        if not wechat:
+            return jsonify({'success': False, 'message': '微信号不能为空'})
+        
+        Config.set_value('customer_service_wechat', wechat, '客服微信号')
+        
+        return jsonify({'success': True, 'message': '保存成功'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
 
 
 @bp.route('/materials')
 @login_required
+@admin_required
 def materials():
     """素材库管理页面"""
     material_types = MaterialType.query.order_by(MaterialType.created_at.desc()).all()
@@ -78,6 +110,7 @@ def materials():
 
 @bp.route('/api/materials')
 @login_required
+@admin_required
 def api_get_materials():
     """分页获取素材API"""
     page = request.args.get('page', 1, type=int)
@@ -98,8 +131,11 @@ def api_get_materials():
     # 计算偏移量
     offset = (page - 1) * per_page
     
-    # 查询素材
-    query = Material.query
+    # 查询素材 - 使用joinedload预加载关联数据，避免N+1查询
+    query = Material.query.options(
+        joinedload(Material.images),
+        joinedload(Material.material_type)
+    )
     if material_type_id is not None:
         query = query.filter_by(material_type_id=material_type_id)
     
@@ -143,6 +179,7 @@ def api_get_materials():
 
 @bp.route('/materials/add', methods=['GET', 'POST'])
 @login_required
+@admin_required
 def material_add():
     # 创建表单实例
     form = MaterialForm()
@@ -222,6 +259,7 @@ def material_add():
 
 @bp.route('/materials/edit/<int:material_id>', methods=['GET', 'POST'])
 @login_required
+@admin_required
 def material_edit(material_id):
     # 获取素材
     material = Material.query.get_or_404(material_id)
@@ -322,6 +360,7 @@ def material_edit(material_id):
 
 @bp.route('/secrets')
 @login_required
+@admin_required
 def secrets():
     """卡密管理页面"""
     from datetime import datetime
@@ -368,6 +407,7 @@ def secrets():
 
 @bp.route('/api/secrets', methods=['POST'])
 @login_required
+@admin_required
 def api_create_secrets():
     """批量生成卡密API"""
     data = request.get_json()
@@ -439,6 +479,7 @@ def api_create_secrets():
 
 @bp.route('/api/secrets/<int:secret_id>', methods=['DELETE'])
 @login_required
+@admin_required
 def api_delete_secret(secret_id):
     """删除卡密API"""
     secret = RegisterSecret.query.get_or_404(secret_id)
@@ -458,6 +499,7 @@ def api_delete_secret(secret_id):
 
 @bp.route('/api/secrets/delete-released', methods=['POST'])
 @login_required
+@admin_required
 def api_delete_released_secrets():
     """批量删除已释放的卡密API"""
     from datetime import datetime
@@ -487,6 +529,7 @@ def api_delete_released_secrets():
 
 @bp.route('/api/secrets/<int:secret_id>/release', methods=['POST'])
 @login_required
+@admin_required
 def api_release_secret(secret_id):
     """释放卡密API"""
     secret = RegisterSecret.query.get_or_404(secret_id)
@@ -511,6 +554,7 @@ def api_release_secret(secret_id):
 
 @bp.route('/users')
 @login_required
+@admin_required
 def users():
     """用户列表管理页面"""
     # 获取搜索关键词
@@ -537,6 +581,7 @@ def users():
 
 @bp.route('/api/users/<int:user_id>/set-admin', methods=['POST'])
 @login_required
+@admin_required
 def api_set_admin(user_id):
     """设置用户为管理员"""
     if not current_user.is_super_admin:
@@ -558,6 +603,7 @@ def api_set_admin(user_id):
 
 @bp.route('/api/users/<int:user_id>/remove-admin', methods=['POST'])
 @login_required
+@admin_required
 def api_remove_admin(user_id):
     """取消用户管理员身份"""
     if not current_user.is_super_admin:
@@ -579,6 +625,7 @@ def api_remove_admin(user_id):
 
 @bp.route('/api/users/<int:user_id>', methods=['DELETE'])
 @login_required
+@admin_required
 def api_delete_user(user_id):
     """删除用户"""
     if not current_user.is_super_admin:
@@ -592,7 +639,18 @@ def api_delete_user(user_id):
     if user.is_admin:
         return jsonify({'success': False, 'message': '请先取消该用户的管理员身份'}), 400
     
-    # 删除用户（级联删除会自动删除用户的卡密）
+    # 删除用户作品库素材的图片文件
+    for user_material in user.user_materials:
+        for img in user_material.images:
+            if img.image_url:
+                file_path = os.path.join(current_app.root_path, img.image_url.lstrip('/'))
+                if os.path.exists(file_path):
+                    try:
+                        os.remove(file_path)
+                    except:
+                        pass
+    
+    # 删除用户（级联删除会自动删除用户的卡密、作品库素材和作品库素材图片记录）
     db.session.delete(user)
     db.session.commit()
     
@@ -602,8 +660,88 @@ def api_delete_user(user_id):
     })
 
 
+@bp.route('/api/users/<int:user_id>/unbind-device', methods=['POST'])
+@login_required
+@admin_required
+def api_unbind_user_device(user_id):
+    """解绑用户设备"""
+    if not current_user.is_super_admin and not current_user.is_admin:
+        return jsonify({'success': False, 'message': '只有管理员才能执行此操作'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    
+    if not user.bound_device_id:
+        return jsonify({'success': False, 'message': '该用户未绑定任何设备'}), 400
+    
+    user.bound_device_id = None
+    user.device_unbind_status = 0
+    user.device_unbind_requested_at = None
+    db.session.commit()
+    
+    logger.info(f'管理员 {current_user.username} 解绑了用户 {user.username} 的设备')
+    
+    return jsonify({
+        'success': True,
+        'message': '设备解绑成功'
+    })
+
+
+@bp.route('/api/users/<int:user_id>/approve-unbind', methods=['POST'])
+@login_required
+@admin_required
+def api_approve_unbind(user_id):
+    """同意用户的解绑申请"""
+    if not current_user.is_super_admin and not current_user.is_admin:
+        return jsonify({'success': False, 'message': '只有管理员才能执行此操作'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    
+    if user.device_unbind_status != 1:
+        return jsonify({'success': False, 'message': '该用户没有待处理的解绑申请'}), 400
+    
+    # 解除设备绑定并重置申请状态
+    user.bound_device_id = None
+    user.device_unbind_status = 0
+    user.device_unbind_requested_at = None
+    db.session.commit()
+    
+    logger.info(f'管理员 {current_user.username} 同意了用户 {user.username} 的解绑申请')
+    
+    return jsonify({
+        'success': True,
+        'message': '解绑申请已同意，设备已解绑'
+    })
+
+
+@bp.route('/api/users/<int:user_id>/reject-unbind', methods=['POST'])
+@login_required
+@admin_required
+def api_reject_unbind(user_id):
+    """拒绝用户的解绑申请"""
+    if not current_user.is_super_admin and not current_user.is_admin:
+        return jsonify({'success': False, 'message': '只有管理员才能执行此操作'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    
+    if user.device_unbind_status != 1:
+        return jsonify({'success': False, 'message': '该用户没有待处理的解绑申请'}), 400
+    
+    # 重置申请状态
+    user.device_unbind_status = 0
+    user.device_unbind_requested_at = None
+    db.session.commit()
+    
+    logger.info(f'管理员 {current_user.username} 拒绝了用户 {user.username} 的解绑申请')
+    
+    return jsonify({
+        'success': True,
+        'message': '解绑申请已拒绝'
+    })
+
+
 @bp.route('/material-types')
 @login_required
+@admin_required
 def material_types():
     """分类管理页面"""
     material_types = MaterialType.query.order_by(MaterialType.created_at.desc()).all()
@@ -612,6 +750,7 @@ def material_types():
 
 @bp.route('/api/material-types', methods=['POST'])
 @login_required
+@admin_required
 def api_add_material_type():
     """添加分类API"""
     data = request.get_json()
@@ -648,6 +787,7 @@ def api_add_material_type():
 
 @bp.route('/api/material-types/<int:type_id>', methods=['GET'])
 @login_required
+@admin_required
 def api_get_material_type(type_id):
     """获取单个分类API"""
     material_type = MaterialType.query.get_or_404(type_id)
@@ -663,6 +803,7 @@ def api_get_material_type(type_id):
 
 @bp.route('/api/material-types/<int:type_id>', methods=['PUT'])
 @login_required
+@admin_required
 def api_update_material_type(type_id):
     """更新分类API"""
     material_type = MaterialType.query.get_or_404(type_id)
@@ -697,6 +838,7 @@ def api_update_material_type(type_id):
 
 @bp.route('/api/material-types/<int:type_id>', methods=['DELETE'])
 @login_required
+@admin_required
 def api_delete_material_type(type_id):
     """删除分类API"""
     material_type = MaterialType.query.get_or_404(type_id)
@@ -716,6 +858,7 @@ def api_delete_material_type(type_id):
 
 @bp.route('/api/materials/<int:material_id>', methods=['DELETE'])
 @login_required
+@admin_required
 def api_delete_material(material_id):
     """删除素材API"""
     material = Material.query.get_or_404(material_id)

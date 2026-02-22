@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block header %}
+{% endblock %}
+
+{% block content %}
+<div class="px-4 py-6 space-y-6">
+    
+    <!-- 返回按钮 -->
+    <div class="flex items-center gap-3">
+        <a href="{{ url_for('main.profile') }}" class="w-10 h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center active:bg-gray-50 transition-colors">
+            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+        </a>
+        <h1 class="text-xl font-bold text-gray-800">安全中心</h1>
+    </div>
+
+    <!-- 功能列表 -->
+    <div class="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100">
+        <!-- 卡密信息 -->
+        <a href="{{ url_for('main.security_secret') }}" class="flex items-center justify-between px-5 py-4 active:bg-gray-50 transition-colors border-b border-gray-50">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-700">卡密信息</p>
+                    <p class="text-[11px] text-gray-400 mt-0.5">查看和续费您的会员资格</p>
+                </div>
+            </div>
+            <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+        </a>
+
+        <!-- 设备绑定 -->
+        <a href="{{ url_for('main.security_device') }}" class="flex items-center justify-between px-5 py-4 active:bg-gray-50 transition-colors border-b border-gray-50">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-700">设备绑定</p>
+                    <p class="text-[11px] text-gray-400 mt-0.5">管理您的登录设备</p>
+                </div>
+            </div>
+            <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+        </a>
+
+        <!-- 修改密码 -->
+        <a href="{{ url_for('main.security_password') }}" class="flex items-center justify-between px-5 py-4 active:bg-gray-50 transition-colors border-b border-gray-50">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-700">修改密码</p>
+                    <p class="text-[11px] text-gray-400 mt-0.5">修改您的账号登录密码</p>
+                </div>
+            </div>
+            <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+        </a>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block footer %}
+{% endblock %}
+

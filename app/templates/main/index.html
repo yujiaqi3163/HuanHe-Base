@@ -14,7 +14,7 @@
         <div id="carousel-wrapper" class="relative overflow-hidden touch-pan-y w-full">
             <div id="carousel-track" class="flex cursor-grab active:cursor-grabbing" style="will-change: transform;">
                 {% for material in hot_materials %}
-                <a href="{{ url_for('main.material_detail', material_id=material.id) }}" class="carousel-slide shrink-0 w-full px-4" data-index="{{ loop.index0 }}">
+                <div onclick="checkMembershipAndGo('{{ url_for('main.material_detail', material_id=material.id) }}')" class="carousel-slide shrink-0 w-full px-4 cursor-pointer" data-index="{{ loop.index0 }}">
                     <div class="relative rounded-2xl overflow-hidden aspect-square shadow-md bg-gray-200">
                         {% set cover_image = material.images|selectattr('is_cover')|first %}
                         {% if cover_image %}
@@ -46,7 +46,7 @@
                             </div>
                         </div>
                     </div>
-                </a>
+                </div>
                 {% endfor %}
             </div>
         </div>
@@ -112,7 +112,7 @@
         
         <div class="grid grid-cols-2 gap-3" id="materials-grid">
             {% for material in latest_materials %}
-            <a href="{{ url_for('main.material_detail', material_id=material.id) }}" class="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 pb-2">
+            <div onclick="checkMembershipAndGo('{{ url_for('main.material_detail', material_id=material.id) }}')" class="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 pb-2 cursor-pointer">
                 <div class="aspect-square bg-gray-100 relative">
                     {% set cover_image = material.images|selectattr('is_cover')|first %}
                     {% if cover_image %}
@@ -147,7 +147,7 @@
                         </div>
                     </div>
                 </div>
-            </a>
+            </div>
             {% endfor %}
         </div>
         
@@ -165,7 +165,97 @@
 
 </div>
 
+<!-- 卡密失效提示框 -->
+<div id="secret-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+    <!-- 背景遮罩 -->
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="hideSecretModal()"></div>
+    
+    <!-- 弹出框内容 -->
+    <div class="relative bg-white rounded-[32px] p-6 w-full max-w-[340px] shadow-2xl animate-[fadeIn_0.3s_ease-out]">
+        <!-- 关闭按钮 -->
+        <button onclick="hideSecretModal()" class="absolute top-4 right-4 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+        
+        <!-- 内容 -->
+        <div class="text-center space-y-4 pt-2">
+            <!-- 图片 -->
+            <div class="relative mx-auto w-24 h-24">
+                <div class="absolute inset-0 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full animate-pulse"></div>
+                <div class="absolute inset-1 bg-white rounded-full flex items-center justify-center">
+                    <svg class="w-12 h-12 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                    </svg>
+                </div>
+            </div>
+            
+            <!-- 标题 -->
+            <h3 class="text-xl font-black text-gray-800">卡密已失效</h3>
+            
+            <!-- 说明文字 -->
+            <div class="space-y-2 text-sm text-gray-600">
+                <p>请联系客服获取激活卡密</p>
+                <p class="text-xs text-gray-400">添加客服请备注：卡密</p>
+            </div>
+            
+            <!-- 客服联系方式 -->
+            <div class="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-4 border border-orange-100">
+                <div class="text-sm font-bold text-orange-600 mb-2">客服微信</div>
+                <div class="bg-white rounded-xl p-3 text-center">
+                    <span class="text-lg font-black text-gray-800">{{ customer_service_wechat }}</span>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">长按复制微信号</p>
+            </div>
+            
+            <!-- 确定按钮 -->
+            <button onclick="hideSecretModal()" class="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold rounded-xl shadow-lg shadow-orange-200 active:scale-[0.98] transition-all">
+                我知道了
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95) translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+</style>
+
 <script>
+    // 卡密模态框控制函数
+    function showSecretModal() {
+        const modal = document.getElementById('secret-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function hideSecretModal() {
+        const modal = document.getElementById('secret-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = '';
+    }
+    
+    // 检查卡密有效性并跳转
+    function checkMembershipAndGo(url) {
+        const isMembershipValid = {{ is_membership_valid | tojson }};
+        if (!isMembershipValid) {
+            showSecretModal();
+            return;
+        }
+        window.location.href = url;
+    }
+    
     document.addEventListener('DOMContentLoaded', () => {
         // 轮播图逻辑
         const wrapper = document.getElementById('carousel-wrapper');
@@ -303,7 +393,7 @@
             }
             
             return `
-                <a href="/material/${material.id}" class="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 pb-2">
+                <div onclick="checkMembershipAndGo('/material/${material.id}')" class="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 pb-2 cursor-pointer">
                     <div class="aspect-square bg-gray-100 relative">
                         ${coverImgHtml}
                         <span class="absolute top-2 left-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm text-white text-[9px] font-bold rounded-lg">${material.material_type}</span>
@@ -330,7 +420,7 @@
                             </div>
                         </div>
                     </div>
-                </a>
+                </div>
             `;
         }
         

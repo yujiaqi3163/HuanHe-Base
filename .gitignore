@@ -2,19 +2,68 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 
 # 虚拟环境
 venv/
 *_venv/
 .venv/
+env/
 
-# 数据库
+# 数据库文件（不可提交）
 instance/
 app.db
+*.db
+*.sqlite
+*.sqlite3
 
 # Node 模块
 node_modules/
 
-# 日志和环境变量
+# 日志文件（不可提交）
+logs/
 *.log
+
+# 环境变量文件（包含敏感信息，不可提交）
 .env
+.env.local
+.env.*.local
+
+# 上传的文件（用户生成内容，不可提交）
+app/static/uploads/
+static/uploads/
+uploads/
+
+# IDE 配置（个人配置，不可提交）
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 测试和覆盖率
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 编译的文件
+*.so
+*.o
+*.obj
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+
+# 测试脚本（可选提交，建议保留用于开发）
+# scripts/test_helpers.py
+# scripts/performance_*.py
+# scripts/security_*.py
+
+# 文档文件（可提交）
+# *.md

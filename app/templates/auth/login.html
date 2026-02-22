@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- 移动端视口配置：禁止缩放，适配移动设备 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>登录 - AI闲鱼素材库</title>
+    <title>登录 - 爆流分发矩阵系统</title>
     <!-- 自定义样式 -->
     <style>
         .bg-glow {
@@ -43,7 +43,7 @@
 
             <header class="text-center mb-6">
                 <h1 class="text-2xl font-black tracking-tighter text-blue-600 mb-1">
-                    AI闲鱼素材库
+                    爆流分发矩阵系统
                 </h1>
                 <!-- 欢迎提示条 -->
                 <div class="inline-flex items-center px-3 py-1 bg-blue-50 border border-blue-100 rounded-full">
@@ -58,9 +58,11 @@
             <!-- 表单容器：白色卡片样式 -->
             <main class="bg-white rounded-[2.5rem] shadow-2xl shadow-blue-500/10 border border-gray-100">
                 <!-- 登录表单：POST 方法提交 -->
-                <form method="POST" class="p-8 space-y-4">
+                <form method="POST" class="p-8 space-y-4" id="login-form">
                     <!-- CSRF 保护令牌 -->
                     {{ form.hidden_tag() }}
+                    <!-- 设备ID隐藏字段 -->
+                    <input type="hidden" name="device_id" id="device-id">
                     
                     <!-- 用户名/邮箱字段：输入用户名或邮箱，带图标，错误时显示红色样式 -->
                     <div class="relative group">
@@ -108,7 +110,7 @@
                             {{ form.remember(class="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500/20") }}
                             <span class="ml-2 text-[11px] text-gray-500">记住登录状态</span>
                         </label>
-                        <a href="#" class="text-[11px] text-blue-600 hover:underline">忘记密码？</a>
+                        <a href="{{ url_for('auth.forgot_password') }}" class="text-[11px] text-blue-600 hover:underline">忘记密码？</a>
                     </div>
 
                     <!-- 提交按钮：蓝色主题，悬停效果，带箭头图标 -->
@@ -131,9 +133,32 @@
         </div>
     </div>
 
-    <!-- 消息自动消失脚本 -->
+    <!-- 消息自动消失和设备ID生成脚本 -->
     <script>
+        // 生成或获取设备ID
+        function getDeviceId() {
+            let deviceId = localStorage.getItem('device_id');
+            if (!deviceId) {
+                // 生成新的设备ID
+                const timestamp = Date.now().toString(36);
+                const random = Math.random().toString(36).substring(2, 15);
+                deviceId = timestamp + '_' + random;
+                localStorage.setItem('device_id', deviceId);
+                console.log('✅ 新设备ID生成:', deviceId);
+            } else {
+                console.log('✅ 使用现有设备ID:', deviceId);
+            }
+            return deviceId;
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            // 设置设备ID
+            const deviceIdInput = document.getElementById('device-id');
+            if (deviceIdInput) {
+                deviceIdInput.value = getDeviceId();
+            }
+            
+            // 消息自动消失
             const flashMessages = document.querySelectorAll('.flash-message');
             flashMessages.forEach(function(message, index) {
                 setTimeout(function() {

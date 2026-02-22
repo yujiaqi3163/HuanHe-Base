@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block header %}
+{% endblock %}
+
+{% block content %}
+<div class="px-4 py-6 space-y-6">
+    
+    <!-- 返回按钮 -->
+    <div class="flex items-center gap-3">
+        <a href="{{ url_for('main.security_center') }}" class="w-10 h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center active:bg-gray-50 transition-colors">
+            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+        </a>
+        <h1 class="text-xl font-bold text-gray-800">设备绑定</h1>
+    </div>
+
+    <!-- 设备绑定状态 -->
+    <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
+        
+        <!-- 设备绑定状态 -->
+        <div class="bg-gray-50 rounded-2xl p-4">
+            <p class="text-[11px] text-gray-400 mb-1">设备绑定状态</p>
+            {% if current_user.bound_device_id %}
+                <p class="text-sm text-gray-800 mb-2">✅ 已绑定设备</p>
+                <p class="text-[11px] text-gray-400 font-mono break-all">{{ current_user.bound_device_id }}</p>
+            {% else %}
+                <p class="text-sm text-gray-500">❌ 未绑定设备</p>
+            {% endif %}
+        </div>
+        
+        <!-- 解绑申请状态 -->
+        {% if current_user.device_unbind_status == 1 %}
+        <div class="bg-yellow-50 rounded-2xl p-4 border border-yellow-100">
+            <p class="text-sm font-bold text-yellow-700 mb-1">📋 解绑申请中</p>
+            <p class="text-[11px] text-yellow-600">请等待管理员审批</p>
+            {% if current_user.device_unbind_requested_at %}
+            <p class="text-[10px] text-yellow-500 mt-1">申请时间: {{ current_user.device_unbind_requested_at.strftime('%Y-%m-%d %H:%M') }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- 申请解绑按钮 -->
+        {% if current_user.bound_device_id and current_user.device_unbind_status != 1 %}
+        <div class="space-y-3">
+            <div class="text-[11px] text-gray-400">
+                需要更换设备？请申请解绑，管理员审批后即可在新设备登录。
+            </div>
+            <button type="button" id="request-unbind-btn" class="w-full py-4 bg-orange-600 text-white font-bold rounded-2xl shadow-lg shadow-orange-100 active:scale-95 transition-transform" onclick="requestUnbind()">
+                申请解绑设备
+            </button>
+        </div>
+        {% elif not current_user.bound_device_id %}
+        <div class="text-center py-4 text-gray-400">
+            <p class="text-sm">当前无设备绑定，无需申请</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<script>
+    function requestUnbind() {
+        if (!confirm('确定要申请解绑设备吗？\n申请后需等待管理员审批，审批通过后可在新设备登录。')) {
+            return;
+        }
+        
+        const btn = document.getElementById('request-unbind-btn');
+        btn.disabled = true;
+        btn.textContent = '申请中...';
+        
+        fetch('/auth/api/request-unbind', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                username_or_email: '{{ current_user.username }}' 
+            })
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            return response.json().then(err => Promise.reject(err));
+        })
+        .then(data => {
+            if (data.success) {
+                alert('解绑申请已提交，请等待管理员审批');
+                window.location.reload();
+            } else {
+                alert(data.message || '申请失败');
+                btn.disabled = false;
+                btn.textContent = '申请解绑设备';
+            }
+        })
+        .catch(error => {
+            alert(error.message || '申请失败，请重试');
+            btn.disabled = false;
+            btn.textContent = '申请解绑设备';
+        });
+    }
+</script>
+{% endblock %}
+
+{% block footer %}
+{% endblock %}
+

@@ -35,6 +35,14 @@ class User(UserMixin, db.Model):
     gender = db.Column(db.String(10), nullable=True)
     # 出生日期
     birthday = db.Column(db.Date, nullable=True)
+    # 绑定的设备ID
+    bound_device_id = db.Column(db.String(200), nullable=True)
+    
+    # 设备解绑状态：0-正常，1-申请中
+    device_unbind_status = db.Column(db.Integer, default=0, nullable=False)
+    
+    # 设备解绑申请时间
+    device_unbind_requested_at = db.Column(db.DateTime, nullable=True)
 
     # 与注册卡密的一对多关系，级联删除
     register_secrets = db.relationship('RegisterSecret', backref='user', lazy=True, cascade='all, delete-orphan')

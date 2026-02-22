@@ -119,12 +119,34 @@
 <script>
     console.log('素材详情页脚本加载成功');
     
+    // 获取设备ID（与登录页面保持一致）
+    function getDeviceId() {
+        let deviceId = localStorage.getItem('device_id');
+        if (!deviceId) {
+            const timestamp = Date.now().toString(36);
+            const random = Math.random().toString(36).substring(2, 15);
+            deviceId = timestamp + '_' + random;
+            localStorage.setItem('device_id', deviceId);
+            console.log('✅ 新设备ID生成:', deviceId);
+        } else {
+            console.log('✅ 使用现有设备ID:', deviceId);
+        }
+        return deviceId;
+    }
+    
     // 素材二创处理
     let currentUserMaterialId = null;
     let isRemixing = false;
     
     async function remixMaterial() {
         if (isRemixing) return;
+        
+        // 检查卡密有效性
+        const isMembershipValid = {{ is_membership_valid | tojson }};
+        if (!isMembershipValid) {
+            showSecretModal();
+            return;
+        }
         
         isRemixing = true;
         const btn = document.getElementById('remix-btn');
@@ -139,10 +161,12 @@
         
         try {
             // 1. 调用后端API进行文案二创和创建记录
+            const deviceId = getDeviceId();
             const response = await fetch(`/api/material/${materialId}/remix`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-Device-ID': deviceId
                 }
             });
             
@@ -159,6 +183,13 @@
             }
             
             currentUserMaterialId = result.data.user_material_id;
+            statusText.textContent = '正在处理图片，请稍候...';
+            
+            // 2. 处理图片（应用CSS混合）
+            console.log('开始处理图片:', result.data.images);
+            await processImages(result.data.images);
+            console.log('图片处理完成');
+            
             statusText.textContent = '🎉 二创完成！已保存至我的作品库';
             statusText.classList.replace('text-blue-500', 'text-green-500');
             
@@ -188,9 +219,11 @@
             const recipe = imgData.css_recipe;
             
             if (recipe) {
+                console.log(`正在处理第 ${i + 1}/${imagesData.length} 张图片...`);
                 // 使用CSS混合处理图片
                 const processedUrl = await processImageWithCSS(imgData.original_url, recipe);
                 processedImages.push({ image_url: processedUrl });
+                console.log(`✅ 第 ${i + 1} 张图片处理完成: ${processedUrl}`);
             } else {
                 processedImages.push({ image_url: imgData.original_url });
             }
@@ -198,6 +231,7 @@
         
         // 更新后端图片
         if (currentUserMaterialId && processedImages.length > 0) {
+            console.log('正在更新后端图片记录...');
             await fetch(`/api/user-material/${currentUserMaterialId}/update-image`, {
                 method: 'POST',
                 headers: {
@@ -205,6 +239,7 @@
                 },
                 body: JSON.stringify({ images: processedImages })
             });
+            console.log('✅ 后端图片记录更新完成');
         }
     }
     
@@ -283,15 +318,31 @@
                     
                     ctx.putImageData(imageData, 0, 0);
                     
-                    // 转换为blob URL
-                    canvas.toBlob((blob) => {
-                        const url = URL.createObjectURL(blob);
-                        
-                        // 清理
-                        document.body.removeChild(container);
-                        
-                        resolve(url);
-                    }, 'image/png');
+                    // 转换为base64并上传到服务器
+                    const base64Data = canvas.toDataURL('image/png');
+                    
+                    // 上传到服务器
+                    const deviceId = getDeviceId();
+                    const uploadResponse = await fetch('/api/upload-image', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Device-ID': deviceId
+                        },
+                        body: JSON.stringify({ image: base64Data })
+                    });
+                    
+                    const uploadResult = await uploadResponse.json();
+                    
+                    // 清理
+                    document.body.removeChild(container);
+                    
+                    if (uploadResult.success) {
+                        resolve(uploadResult.data.image_url);
+                    } else {
+                        console.error('上传图片失败:', uploadResult.message);
+                        resolve(imageUrl);
+                    }
                     
                 } catch (error) {
                     console.error('图片处理失败:', error);
@@ -453,4 +504,86 @@
         }
     }
 </script>
+
+<!-- 卡密失效提示框 -->
+<div id="secret-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+    <!-- 背景遮罩 -->
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="hideSecretModal()"></div>
+    
+    <!-- 弹出框内容 -->
+    <div class="relative bg-white rounded-[32px] p-6 w-full max-w-[340px] shadow-2xl animate-[fadeIn_0.3s_ease-out]">
+        <!-- 关闭按钮 -->
+        <button onclick="hideSecretModal()" class="absolute top-4 right-4 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+        
+        <!-- 内容 -->
+        <div class="text-center space-y-4 pt-2">
+            <!-- 图片 -->
+            <div class="relative mx-auto w-24 h-24">
+                <div class="absolute inset-0 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full animate-pulse"></div>
+                <div class="absolute inset-1 bg-white rounded-full flex items-center justify-center">
+                    <svg class="w-12 h-12 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                    </svg>
+                </div>
+            </div>
+            
+            <!-- 标题 -->
+            <h3 class="text-xl font-black text-gray-800">卡密已失效</h3>
+            
+            <!-- 说明文字 -->
+            <div class="space-y-2 text-sm text-gray-600">
+                <p>请联系客服获取激活卡密</p>
+                <p class="text-xs text-gray-400">添加客服请备注：卡密</p>
+            </div>
+            
+            <!-- 客服联系方式 -->
+            <div class="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-4 border border-orange-100">
+                <div class="text-sm font-bold text-orange-600 mb-2">客服微信</div>
+                <div class="bg-white rounded-xl p-3 text-center">
+                    <span class="text-lg font-black text-gray-800">{{ customer_service_wechat }}</span>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">长按复制微信号</p>
+            </div>
+            
+            <!-- 确定按钮 -->
+            <button onclick="hideSecretModal()" class="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold rounded-xl shadow-lg shadow-orange-200 active:scale-[0.98] transition-all">
+                我知道了
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95) translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+</style>
+
+<script>
+    function showSecretModal() {
+        const modal = document.getElementById('secret-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function hideSecretModal() {
+        const modal = document.getElementById('secret-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = '';
+    }
+</script>
+
 {% endblock %}
