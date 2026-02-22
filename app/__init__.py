@@ -17,6 +17,9 @@ load_dotenv()
 # 获取项目根目录路径
 basedir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
+# 全局 Celery 实例
+celery_app = None
+
 # 配置类
 class Config:
     # 密钥，用于加密 session 等
@@ -33,6 +36,9 @@ class Config:
     REMEMBER_COOKIE_DURATION = 30 * 24 * 60 * 60
     # 最大上传文件大小 100MB（Flask 层面的限制）
     MAX_CONTENT_LENGTH = 100 * 1024 * 1024
+    # Celery 配置
+    CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+    CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
     # 邮件配置（163 邮箱 SMTP）
     MAIL_SERVER = 'smtp.163.com'
     MAIL_PORT = 465
@@ -48,6 +54,25 @@ db = SQLAlchemy()
 # 初始化邮件对象
 mail = Mail()
 
+def init_celery(app):
+    """初始化 Celery"""
+    from celery import Celery
+    
+    celery = Celery(
+        app.import_name,
+        broker=app.config['CELERY_BROKER_URL'],
+        backend=app.config['CELERY_RESULT_BACKEND']
+    )
+    celery.conf.update(app.config)
+    
+    class ContextTask(celery.Task):
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return self.run(*args, **kwargs)
+    
+    celery.Task = ContextTask
+    return celery
+
 # 创建应用的工厂函数
 def create_app(config_class=Config):
     # 创建 Flask 应用实例，指定模板和静态文件目录
@@ -60,6 +85,10 @@ def create_app(config_class=Config):
 
     # 初始化邮件
     mail.init_app(app)
+
+    # 初始化 Celery
+    global celery_app
+    celery_app = init_celery(app)
 
     # 初始化登录管理器
     login_manager = LoginManager()

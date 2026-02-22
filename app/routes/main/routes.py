@@ -884,88 +884,71 @@ def material_detail(material_id):
 @login_required
 @device_required
 def api_remix_material(material_id):
-    """素材二创API"""
-    logger.info(f'开始处理素材二创请求，素材ID: {material_id}')
+    """素材二创API - 异步版本"""
+    logger.info(f'收到素材二创请求，素材ID: {material_id}')
     
     try:
-        from app.models import Material, UserMaterial, UserMaterialImage
-        from app.utils.material_remix import optimize_copywriting, get_unique_css_recipes
-        import json
+        from app.models import Material
+        from app.tasks import async_remix_material
         
         # 获取原始素材（只允许二创已上架的素材）
         original_material = Material.query.filter_by(id=material_id, is_published=True).first_or_404()
         logger.debug(f'找到原始素材: {original_material.title}')
         
-        # 1. 文案二创（使用DeepSeek）
-        original_description = original_material.description or ''
-        logger.debug(f'原文案长度: {len(original_description)}')
-        remix_description = optimize_copywriting(original_description)
-        logger.debug(f'二创文案长度: {len(remix_description)}')
+        # 立即启动异步任务
+        task = async_remix_material.delay(material_id, current_user.id)
+        logger.info(f'异步任务已启动，task_id: {task.id}')
         
-        # 2. 创建用户二创素材
-        user_material = UserMaterial(
-            user_id=current_user.id,
-            original_material_id=material_id,
-            title=original_material.title,
-            description=remix_description,
-            original_description=original_description
-        )
-        
-        db.session.add(user_material)
-        db.session.flush()
-        logger.info(f'创建用户素材成功，ID: {user_material.id}')
-        
-        # 3. 处理图片 - 确保每张图片使用不同的CSS配方
-        images_data = []
-        # 先获取所有不重复的CSS配方
-        recipes = get_unique_css_recipes(len(original_material.images))
-        
-        for idx, img in enumerate(original_material.images):
-            # 使用不重复的CSS配方
-            recipe = recipes[idx]
-            
-            # 创建二创图片记录
-            remix_img = UserMaterialImage(
-                user_material_id=user_material.id,
-                original_image_url=img.image_url,
-                image_url=img.image_url,
-                sort_order=idx,
-                is_cover=img.is_cover,
-                css_recipe=json.dumps(recipe, ensure_ascii=False)
-            )
-            db.session.add(remix_img)
-            images_data.append({
-                'original_url': img.image_url,
-                'css_recipe': recipe
-            })
-        
-        logger.debug(f'图片处理完成，使用了 {len(recipes)} 个不重复的CSS配方')
-        
-        # 4. 提交数据库
-        db.session.commit()
-        logger.debug('数据库提交成功')
-        
-        # 5. 返回结果
-        result = {
+        # 返回 task_id
+        return jsonify({
             'success': True,
-            'message': '素材二创成功',
-            'data': {
-                'user_material_id': user_material.id,
-                'title': user_material.title,
-                'description': user_material.description,
-                'original_description': user_material.original_description,
-                'images': images_data
-            }
-        }
-        logger.debug(f'返回结果: {result}')
-        return jsonify(result)
+            'message': '二创任务已提交，请等待处理...',
+            'task_id': task.id
+        })
         
     except Exception as e:
-        db.session.rollback()
-        logger.error(f'素材二创异常: {str(e)}', exc_info=True)
+        logger.error(f'素材二创请求失败: {str(e)}', exc_info=True)
         return jsonify({
             'success': False,
-            'message': f'素材二创失败: {str(e)}'
+            'message': f'请求失败: {str(e)}'
+        }), 500
+
+
+@bp.route('/api/task/<task_id>/status', methods=['GET'])
+@login_required
+def api_get_task_status(task_id):
+    """查询任务状态API"""
+    from celery.result import AsyncResult
+    from app import celery_app
+    
+    try:
+        task = AsyncResult(task_id, app=celery_app)
+        
+        response = {
+            'task_id': task_id,
+            'status': task.status
+        }
+        
+        if task.status == 'PENDING':
+            response['message'] = '任务等待中...'
+        elif task.status == 'STARTED':
+            response['message'] = '任务正在处理中...'
+        elif task.status == 'SUCCESS':
+            response['message'] = '任务完成'
+            response['result'] = task.result
+        elif task.status == 'FAILURE':
+            response['message'] = '任务失败'
+            response['error'] = str(task.result) if task.result else '未知错误'
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        logger.error(f'查询任务状态失败: {str(e)}', exc_info=True)
+        return jsonify({
+            'task_id': task_id,
+            'status': 'FAILURE',
+            'message': f'查询失败: {str(e)}',
+            'error': str(e)
         }), 500
 
 

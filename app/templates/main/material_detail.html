@@ -135,8 +135,10 @@
     }
     
     // 素材二创处理
+    let currentTaskId = null;
     let currentUserMaterialId = null;
     let isRemixing = false;
+    let pollInterval = null;
     
     async function remixMaterial() {
         if (isRemixing) return;
@@ -154,13 +156,13 @@
         
         btn.disabled = true;
         btn.classList.add('opacity-70', 'cursor-not-allowed');
-        statusText.textContent = '正在进行AI二创，请稍候...';
+        statusText.textContent = '正在提交二创任务...';
         statusText.classList.replace('text-gray-400', 'text-blue-500');
         
         const materialId = {{ material.id }};
         
         try {
-            // 1. 调用后端API进行文案二创和创建记录
+            // 1. 调用后端API提交异步任务
             const deviceId = getDeviceId();
             const response = await fetch(`/api/material/${materialId}/remix`, {
                 method: 'POST',
@@ -182,33 +184,83 @@
                 throw new Error(result.message || '二创失败');
             }
             
-            currentUserMaterialId = result.data.user_material_id;
-            statusText.textContent = '正在处理图片，请稍候...';
+            currentTaskId = result.task_id;
+            statusText.textContent = result.message;
             
-            // 2. 处理图片（应用CSS混合）
-            console.log('开始处理图片:', result.data.images);
-            await processImages(result.data.images);
-            console.log('图片处理完成');
-            
-            statusText.textContent = '🎉 二创完成！已保存至我的作品库';
-            statusText.classList.replace('text-blue-500', 'text-green-500');
-            
-            // 3. 显示成功提示，延迟后跳转到作品库
-            setTimeout(() => {
-                if (confirm('素材二创成功！是否前往作品库查看？')) {
-                    window.location.href = '/my-materials';
-                }
-            }, 1000);
+            // 2. 开始轮询任务状态
+            startPolling(currentTaskId);
             
         } catch (error) {
             console.error('二创失败:', error);
             statusText.textContent = '二创失败：' + error.message;
             statusText.classList.replace('text-blue-500', 'text-red-500');
-        } finally {
             isRemixing = false;
             btn.disabled = false;
             btn.classList.remove('opacity-70', 'cursor-not-allowed');
         }
+    }
+    
+    function startPolling(taskId) {
+        const statusText = document.getElementById('status-text');
+        const btn = document.getElementById('remix-btn');
+        
+        // 每隔2秒查询一次任务状态
+        pollInterval = setInterval(async () => {
+            try {
+                const response = await fetch(`/api/task/${taskId}/status`);
+                const result = await response.json();
+                
+                statusText.textContent = result.message;
+                
+                if (result.status === 'SUCCESS') {
+                    // 任务完成
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+                    
+                    if (result.result && result.result.success) {
+                        currentUserMaterialId = result.result.user_material_id;
+                        statusText.textContent = '🎉 二创完成！已保存至我的作品库';
+                        statusText.classList.replace('text-blue-500', 'text-green-500');
+                        
+                        setTimeout(() => {
+                            if (confirm('素材二创成功！是否前往作品库查看？')) {
+                                window.location.href = '/my-materials';
+                            }
+                        }, 1000);
+                    } else {
+                        throw new Error(result.result?.error || '任务执行失败');
+                    }
+                    
+                    isRemixing = false;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-70', 'cursor-not-allowed');
+                    
+                } else if (result.status === 'FAILURE') {
+                    // 任务失败
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+                    
+                    statusText.textContent = '二创失败：' + (result.error || '未知错误');
+                    statusText.classList.replace('text-blue-500', 'text-red-500');
+                    
+                    isRemixing = false;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-70', 'cursor-not-allowed');
+                }
+                
+            } catch (error) {
+                console.error('查询任务状态失败:', error);
+                clearInterval(pollInterval);
+                pollInterval = null;
+                
+                statusText.textContent = '查询状态失败，请手动刷新';
+                statusText.classList.replace('text-blue-500', 'text-yellow-500');
+                
+                isRemixing = false;
+                btn.disabled = false;
+                btn.classList.remove('opacity-70', 'cursor-not-allowed');
+            }
+        }, 2000);
     }
     
     async function processImages(imagesData) {
