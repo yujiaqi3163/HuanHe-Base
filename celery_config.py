@@ -3,7 +3,7 @@ import os
 from celery import Celery
 from dotenv import load_dotenv
 
-# 加载环境变量
+# 加载环境变量--从.env文件加载
 load_dotenv()
 
 # 创建 Celery 实例
