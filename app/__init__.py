@@ -177,5 +177,9 @@ def create_app(config_class=Config):
     from app.utils.logger import setup_logging
     setup_logging(app)
     
+    # 初始化 Redis 分布式限流器
+    from app.utils.rate_limit import init_limiter
+    init_limiter(app)
+    
     # 返回应用实例
     return app

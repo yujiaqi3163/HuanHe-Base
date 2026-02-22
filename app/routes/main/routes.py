@@ -4,6 +4,7 @@ from app.models import User, RegisterSecret, Material, UserMaterial, UserMateria
 from app import db  # 导入数据库
 from app.decorators import device_required  # 导入设备锁装饰器
 from app.utils.logger import get_logger  # 导入日志模块
+from app.utils.rate_limit import get_limiter  # 导入限流器
 from sqlalchemy.orm import joinedload  # 导入joinedload用于预加载关联数据
 import os
 import random
@@ -884,7 +885,14 @@ def material_detail(material_id):
 @login_required
 @device_required
 def api_remix_material(material_id):
-    """素材二创API - 异步版本"""
+    """素材二创API - 异步版本（限流：每分钟2次）"""
+    limiter = get_limiter()
+    if limiter:
+        return limiter.limit("2 per minute")(_api_remix_material)(material_id)
+    return _api_remix_material(material_id)
+
+def _api_remix_material(material_id):
+    """素材二创API - 实际逻辑"""
     logger.info(f'收到素材二创请求，素材ID: {material_id}')
     
     try:

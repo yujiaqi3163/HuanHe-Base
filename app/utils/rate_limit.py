@@ -1,61 +1,52 @@
-from functools import wraps
-from flask import request, jsonify, session
-from datetime import datetime, timedelta
-import logging
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+import os
 
-logger = logging.getLogger(__name__)
+limiter = None
 
-# 内存存储的限流记录
-rate_limit_records = {}
-
-def rate_limit(key_prefix, max_requests=5, time_window=60):
+def init_limiter(app):
     """
-    限流装饰器
+    初始化 Redis 分布式限流器
     
     Args:
-        key_prefix: 限流键的前缀，用于区分不同接口
-        max_requests: 时间窗口内最大请求次数
-        time_window: 时间窗口（秒）
+        app: Flask 应用实例
     """
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            # 获取用户标识（优先使用user_id，其次使用IP）
-            from flask_login import current_user
-            if current_user and current_user.is_authenticated:
-                user_identifier = f"user_{current_user.id}"
-            else:
-                user_identifier = f"ip_{request.remote_addr}"
-            
-            # 构建限流键
-            rate_key = f"{key_prefix}_{user_identifier}"
-            
-            now = datetime.now()
-            
-            # 清理过期的记录
-            if rate_key in rate_limit_records:
-                # 过滤掉时间窗口外的记录
-                rate_limit_records[rate_key] = [
-                    t for t in rate_limit_records[rate_key] 
-                    if now - t < timedelta(seconds=time_window)
-                ]
-            
-            # 初始化记录列表
-            if rate_key not in rate_limit_records:
-                rate_limit_records[rate_key] = []
-            
-            # 检查是否超过限制
-            if len(rate_limit_records[rate_key]) >= max_requests:
-                logger.warning(f"请求频率超限: {rate_key}")
-                return jsonify({
-                    'success': False,
-                    'message': f'请求过于频繁，请稍后重试（限制{max_requests}次/{time_window}秒）'
-                }), 429
-            
-            # 记录此次请求
-            rate_limit_records[rate_key].append(now)
-            
-            return f(*args, **kwargs)
-        
-        return decorated_function
-    return decorator
+    global limiter
+    
+    # 从环境变量获取 Redis URL，默认使用本地 Redis
+    redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+    
+    # 初始化限流器
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        storage_uri=redis_url,
+        default_limits=["200 per day", "50 per hour"],
+        storage_options={
+            'socket_connect_timeout': 5,
+            'socket_timeout': 10
+        }
+    )
+    
+    # 注册全局错误处理器
+    @app.errorhandler(429)
+    def ratelimit_handler(e):
+        """
+        限流错误统一处理
+        返回 JSON 格式：{"code": 429, "msg": "创作太频繁，请稍后再试"}
+        """
+        return {
+            "code": 429,
+            "msg": "创作太频繁，请稍后再试"
+        }, 429
+    
+    return limiter
+
+def get_limiter():
+    """
+    获取限流器实例
+    
+    Returns:
+        Limiter: 限流器实例
+    """
+    return limiter
