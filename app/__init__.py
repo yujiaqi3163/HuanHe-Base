@@ -31,6 +31,8 @@ class Config:
     WTF_CSRF_ENABLED = True
     # 记住登录状态的有效期（30天）
     REMEMBER_COOKIE_DURATION = 30 * 24 * 60 * 60
+    # 最大上传文件大小 100MB（Flask 层面的限制）
+    MAX_CONTENT_LENGTH = 100 * 1024 * 1024
     # 邮件配置（163 邮箱 SMTP）
     MAIL_SERVER = 'smtp.163.com'
     MAIL_PORT = 465

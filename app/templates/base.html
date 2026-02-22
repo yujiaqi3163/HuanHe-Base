@@ -19,6 +19,92 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         /* 安全区域适配 */
         .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        
+        /* 统一返回按钮样式 */
+        .back-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            background: white;
+            border: 1px solid #f3f4f6;
+            border-radius: 16px;
+            color: #9ca3af;
+            transition: all 0.2s ease;
+        }
+        .back-button:active {
+            transform: scale(0.92);
+            background: #f9fafb;
+        }
+        
+        /* 统一输入框样式 */
+        .form-input {
+            width: 100%;
+            padding: 16px 24px;
+            background: #f9fafb;
+            border: none;
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .form-input:focus {
+            background: white;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+        .form-input::placeholder {
+            color: #d1d5db;
+            font-weight: 500;
+        }
+        
+        /* 统一卡片样式 */
+        .content-card {
+            background: white;
+            border-radius: 32px;
+            border: 1px solid #f3f4f6;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        
+        /* 统一按钮样式 */
+        .btn-primary {
+            background: #111827;
+            color: white;
+            font-weight: 700;
+            border-radius: 20px;
+            transition: all 0.2s ease;
+        }
+        .btn-primary:active {
+            transform: scale(0.95);
+        }
+        .btn-secondary {
+            background: #f9fafb;
+            color: #9ca3af;
+            font-weight: 700;
+            border-radius: 20px;
+            transition: all 0.2s ease;
+        }
+        .btn-secondary:active {
+            transform: scale(0.95);
+            background: #f3f4f6;
+        }
+        
+        /* 统一固定底部操作栏 */
+        .fixed-bottom-actions {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            border-top: 1px solid #f3f4f6;
+            padding: 24px;
+            padding-bottom: calc(24px + env(safe-area-inset-bottom));
+            z-index: 100;
+            display: flex;
+            gap: 16px;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900 min-h-screen pb-28">

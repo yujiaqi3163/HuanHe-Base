@@ -129,14 +129,14 @@ def index():
     users = User.query.all()  # 查询所有用户
     register_secrets = RegisterSecret.query.all()  # 查询所有注册卡密
     
-    # 查询热度最高的前5个素材（按浏览量排序）
-    hot_materials = Material.query.order_by(Material.view_count.desc()).limit(5).all()
+    # 查询热度最高的前5个素材（按浏览量排序，只显示已上架）
+    hot_materials = Material.query.filter_by(is_published=True).order_by(Material.view_count.desc()).limit(5).all()
     
-    # 查询最新入库的素材（按创建时间降序排序）
-    latest_materials = Material.query.order_by(Material.created_at.desc()).limit(8).all()
+    # 查询最新入库的素材（按创建时间降序排序，只显示已上架）
+    latest_materials = Material.query.filter_by(is_published=True).order_by(Material.created_at.desc()).limit(8).all()
     
-    # 获取素材总数
-    total_count = Material.query.count()
+    # 获取素材总数（只统计已上架素材）
+    total_count = Material.query.filter_by(is_published=True).count()
     
     # 验证用户卡密有效性
     is_membership_valid = False
@@ -659,11 +659,11 @@ def api_get_latest_materials():
     # 计算偏移量
     offset = (page - 1) * per_page
     
-    # 查询素材 - 使用joinedload预加载关联数据，避免N+1查询
+    # 查询素材 - 使用joinedload预加载关联数据，避免N+1查询，只显示已上架
     query = Material.query.options(
         joinedload(Material.images),
         joinedload(Material.material_type)
-    )
+    ).filter_by(is_published=True)
     
     # 添加搜索条件（按标题搜索）
     if search_keyword:
@@ -844,7 +844,7 @@ def material_detail(material_id):
     from datetime import datetime
     from app.models import Config
     
-    material = Material.query.get_or_404(material_id)
+    material = Material.query.filter_by(id=material_id, is_published=True).first_or_404()
     
     # 验证用户卡密有效性
     is_membership_valid = False
@@ -892,8 +892,8 @@ def api_remix_material(material_id):
         from app.utils.material_remix import optimize_copywriting, get_unique_css_recipes
         import json
         
-        # 获取原始素材
-        original_material = Material.query.get_or_404(material_id)
+        # 获取原始素材（只允许二创已上架的素材）
+        original_material = Material.query.filter_by(id=material_id, is_published=True).first_or_404()
         logger.debug(f'找到原始素材: {original_material.title}')
         
         # 1. 文案二创（使用DeepSeek）

@@ -17,7 +17,7 @@
 <!-- 顶部导航栏 -->
 <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100/50 px-4 py-4 flex items-center justify-between">
     <div class="flex items-center gap-3">
-        <a href="{{ url_for('main.profile') }}" class="p-2 -ml-2 text-gray-400 active:scale-90 transition-transform">
+        <a href="{{ url_for('main.profile') }}" class="back-button">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -110,29 +110,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- 4. 账号安全 (只读/跳转) -->
-        <div class="bg-gray-100/50 rounded-[32px] p-5 flex items-center justify-between group active:bg-gray-100 transition-colors">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-orange-500 shadow-sm">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                </div>
-                <div>
-                    <p class="text-sm font-bold text-gray-800">修改登录密码</p>
-                    <p class="text-[10px] text-gray-400">上次修改：3个月前</p>
-                </div>
-            </div>
-            <svg class="w-5 h-5 text-gray-300 group-active:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-        </div>
-
-        <!-- 退出登录按钮 -->
-        <a href="{{ url_for('auth.logout') }}" class="block w-full py-4 text-red-500 text-sm font-bold rounded-[24px] border border-red-50/50 active:bg-red-50 transition-colors text-center">
-            退出当前账号
-        </a>
 
     </form>
 </div>

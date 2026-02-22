@@ -15,14 +15,62 @@ from app.models import Material, MaterialType, MaterialImage, RegisterSecret, Us
 from app.utils.logger import get_logger
 # 导入文件处理模块
 import os
+import re
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from sqlalchemy.orm import joinedload  # 导入joinedload用于预加载关联数据
 
 logger = get_logger(__name__)
 
-# 创建管理后台路由蓝图
-bp = Blueprint('admin', __name__, url_prefix='/admin')
+# 文件上传安全配置
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+ALLOWED_EXTENSIONS = {
+    # 图片格式
+    'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp',
+    # 视频格式
+    'mp4', 'webm', 'mov', 'avi', 'mkv'
+}
+ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'}
+
+
+def allowed_file(filename, allowed_extensions=None):
+    """检查文件扩展名是否在白名单中"""
+    if allowed_extensions is None:
+        allowed_extensions = ALLOWED_EXTENSIONS
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in allowed_extensions
+
+
+def validate_file(file, allowed_extensions=None):
+    """
+    验证文件
+    
+    Args:
+        file: 文件对象
+        allowed_extensions: 允许的扩展名集合
+    
+    Returns:
+        tuple: (is_valid, error_message)
+    """
+    if not file:
+        return False, '文件不能为空'
+    
+    if not file.filename:
+        return False, '文件名不能为空'
+    
+    # 检查扩展名
+    if not allowed_file(file.filename, allowed_extensions):
+        return False, f'不支持的文件格式: {file.filename}'
+    
+    # 检查文件大小 (先seek到末尾获取大小，再seek回0)
+    file.seek(0, 2)  # 移动到文件末尾
+    size = file.tell()
+    file.seek(0)  # 移动回文件开头
+    
+    if size > MAX_FILE_SIZE:
+        return False, f'文件大小超过限制 (最大 {MAX_FILE_SIZE // (1024 * 1024)}MB): {file.filename}'
+    
+    return True, None
 
 
 def save_image(file):
@@ -47,6 +95,10 @@ def save_image(file):
     
     # 返回相对路径（用于数据库存储）
     return f'/static/uploads/{filename}'
+
+
+# 创建管理后台路由蓝图
+bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 
 @bp.route('/')
@@ -1006,3 +1058,204 @@ def api_delete_material(material_id):
         'success': True,
         'message': '素材删除成功'
     })
+
+
+@bp.route('/api/materials/batch-delete', methods=['POST'])
+@login_required
+@admin_required
+@permission_required('material_manage')
+def api_batch_delete_materials():
+    """批量删除素材API"""
+    try:
+        data = request.get_json()
+        material_ids = data.get('material_ids', [])
+        
+        if not material_ids or len(material_ids) == 0:
+            return jsonify({'success': False, 'message': '请选择要删除的素材'}), 400
+        
+        # 查询要删除的素材
+        materials = Material.query.filter(Material.id.in_(material_ids)).all()
+        
+        if not materials:
+            return jsonify({'success': False, 'message': '未找到要删除的素材'}), 404
+        
+        # 删除关联的图片文件
+        for material in materials:
+            for img in material.images:
+                if img.image_url:
+                    file_path = os.path.join(current_app.root_path, img.image_url.lstrip('/'))
+                    if os.path.exists(file_path):
+                        try:
+                            os.remove(file_path)
+                        except:
+                            pass
+        
+        # 删除素材（级联删除关联图片）
+        for material in materials:
+            db.session.delete(material)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'成功删除 {len(materials)} 个素材'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'批量删除素材失败: {str(e)}')
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@bp.route('/api/materials/delete-all', methods=['POST'])
+@login_required
+@admin_required
+@permission_required('material_manage')
+def api_delete_all_materials():
+    """全部删除素材API（清空素材库）"""
+    try:
+        # 查询所有素材
+        materials = Material.query.all()
+        
+        if not materials:
+            return jsonify({'success': False, 'message': '素材库已经是空的'}), 400
+        
+        # 删除关联的图片文件
+        for material in materials:
+            for img in material.images:
+                if img.image_url:
+                    file_path = os.path.join(current_app.root_path, img.image_url.lstrip('/'))
+                    if os.path.exists(file_path):
+                        try:
+                            os.remove(file_path)
+                        except:
+                            pass
+        
+        # 删除所有素材（级联删除关联图片）
+        for material in materials:
+            db.session.delete(material)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'成功清空素材库，共删除 {len(materials)} 个素材'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'清空素材库失败: {str(e)}')
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@bp.route('/materials/batch-upload', methods=['POST'])
+@login_required
+@admin_required
+@permission_required('material_manage')
+def batch_upload_material():
+    """批量上传素材API（带安全验证）"""
+    try:
+        # 获取表单数据
+        folder_name = request.form.get('folder_name')
+        text_file = request.files.get('text_file')
+        
+        # 获取所有图片文件 - 使用更兼容的方式
+        image_files = []
+        for key in request.files:
+            if key.startswith('images'):
+                files = request.files.getlist(key)
+                image_files.extend(files)
+        
+        # 验证图片文件
+        invalid_files = []
+        valid_image_files = []
+        for img_file in image_files:
+            if img_file and img_file.filename:
+                is_valid, error_msg = validate_file(img_file, ALLOWED_IMAGE_EXTENSIONS)
+                if is_valid:
+                    valid_image_files.append(img_file)
+                else:
+                    invalid_files.append(f'{img_file.filename}: {error_msg}')
+        
+        # 如果有无效文件，返回错误
+        if invalid_files:
+            return jsonify({
+                'success': False,
+                'message': '部分文件验证失败',
+                'invalid_files': invalid_files
+            }), 400
+        
+        # 如果没有有效图片，返回错误
+        if not valid_image_files:
+            return jsonify({
+                'success': False,
+                'message': '没有有效的图片文件'
+            }), 400
+        
+        # 解析文案.txt
+        title = ""
+        content = ""
+        if text_file:
+            content_str = text_file.read().decode('utf-8')
+            title_match = re.search(r'title\s*[：:]\s*"(.*?)"', content_str, re.DOTALL | re.IGNORECASE)
+            content_match = re.search(r'content\s*[：:]\s*"(.*?)"', content_str, re.DOTALL | re.IGNORECASE)
+            if title_match:
+                title = title_match.group(1)
+            if content_match:
+                content = content_match.group(1)
+        
+        # 检查标题是否为空
+        if not title:
+            title = folder_name or "未命名素材"
+        
+        # 图片按文件名排序
+        valid_image_files.sort(key=lambda x: x.filename)
+        
+        # 获取或创建"副业"分类
+        material_type = MaterialType.query.filter_by(name="副业").first()
+        if not material_type:
+            material_type = MaterialType(name="副业", description="批量上传的素材分类")
+            db.session.add(material_type)
+        
+        # 创建素材记录
+        material = Material(
+            title=title,
+            description=content,
+            material_type_id=material_type.id if material_type.id else None,
+            is_published=True
+        )
+        db.session.add(material)
+        
+        # 如果分类是新创建的，需要先flush获取ID
+        if not material_type.id:
+            db.session.flush()
+            material.material_type_id = material_type.id
+        
+        # 再flush获取素材ID
+        db.session.flush()
+        
+        # 保存图片
+        for idx, img_file in enumerate(valid_image_files):
+            img_url = save_image(img_file)
+            if img_url:
+                image = MaterialImage(
+                    material_id=material.id,
+                    image_url=img_url,
+                    is_cover=(idx == 0),
+                    sort_order=idx
+                )
+                db.session.add(image)
+        
+        # 提交到数据库
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'素材 "{title}" 上传成功',
+            'uploaded_images': len(valid_image_files)
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'批量上传素材失败: {str(e)}')
+        return jsonify({'success': False, 'message': str(e)}), 500

@@ -3,14 +3,14 @@
 {% block header %}
 <!-- 沉浸式顶部导航 -->
 <header class="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-4 py-2 bg-white/60 backdrop-blur-xl border-b border-gray-100/50">
-    <a href="javascript:history.back()" class="w-8 h-8 flex items-center justify-center bg-white rounded-xl shadow-sm border border-gray-100 active:scale-90 transition-transform">
-        <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+    <a href="javascript:history.back()" class="back-button">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
     </a>
     <h1 class="text-lg font-black text-gray-900">素材详情</h1>
-    <button onclick="toggleAction('collect')" id="collect-btn" class="w-8 h-8 flex items-center justify-center bg-white rounded-xl shadow-sm border border-gray-100 active:scale-90 transition-all">
-        <svg class="w-4 h-4 text-gray-400" id="collect-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <button onclick="toggleAction('collect')" id="collect-btn" class="back-button">
+        <svg class="w-6 h-6 text-gray-400" id="collect-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
         </svg>
     </button>

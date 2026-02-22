@@ -1,34 +1,58 @@
-aiohappyeyeballs==2.6.1
-aiohttp==3.13.3
-aiosignal==1.4.0
-attrs==25.4.0
-blinker==1.9.0
-certifi==2026.1.4
-charset-normalizer==3.4.4
-click==8.3.1
-colorama==0.4.6
-dnspython==2.8.0
-email-validator==2.3.0
+# Flask 核心框架
 Flask==2.3.3
 Flask-Login==0.6.3
 Flask-Mail==0.10.0
 Flask-SQLAlchemy==3.1.1
 Flask-WTF==1.2.2
-frozenlist==1.8.0
-greenlet==3.3.1
-idna==3.11
-itsdangerous==2.2.0
-Jinja2==3.1.6
-MarkupSafe==3.0.3
-multidict==6.7.1
-openai==0.28.1
-propcache==0.4.1
-python-dotenv==1.2.1
-requests==2.32.5
-SQLAlchemy==2.0.46
-tqdm==4.67.3
-typing_extensions==4.15.0
-urllib3==2.6.3
 Werkzeug==2.3.8
 WTForms==3.2.1
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+itsdangerous==2.2.0
+click==8.3.1
+blinker==1.9.0
+
+# 数据库
+SQLAlchemy==2.0.46
+greenlet==3.3.1
+
+# 外部 API
+openai==0.28.1
+
+# 邮件验证
+email-validator==2.3.0
+
+# 环境变量
+python-dotenv==1.2.1
+
+# HTTP 请求
+requests==2.32.5
+urllib3==2.6.3
+certifi==2026.1.4
+charset-normalizer==3.4.4
+idna==3.11
+
+# 异步（可选，用于优化建议）
+aiohttp==3.13.3
+aiosignal==1.4.0
+aiohappyeyeballs==2.6.1
+frozenlist==1.8.0
+multidict==6.7.1
 yarl==1.22.0
+attrs==25.4.0
+typing_extensions==4.15.0
+
+# 生产环境服务器（推荐）
+gunicorn>=21.0.0
+
+# 异步任务队列（可选，用于优化建议）
+celery>=5.3.0
+redis>=5.0.0
+
+# 工具库
+tqdm==4.67.3
+colorama==0.4.6
+propcache==0.4.1
+
+# DNS 工具
+dnspython==2.8.0

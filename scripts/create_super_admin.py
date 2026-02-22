@@ -26,9 +26,9 @@ def create_super_admin():
         print('=' * 60)
         
         # 超级管理员配置
-        admin_username = 'admin'
+        admin_username = 'yujiaqi3163'
         admin_email = '2798479668@qq.com'
-        admin_password = 'Aa123456!'
+        admin_password = 'Yun803163.'
         
         print(f'\n用户名: {admin_username}')
         print(f'邮箱: {admin_email}')

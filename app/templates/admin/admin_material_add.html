@@ -1,12 +1,10 @@
 {% extends "admin/admin_base.html" %}
 
 {% block admin_content %}
-<form id="material-form" method="POST" enctype="multipart/form-data" class="px-4 py-6 space-y-6 pb-32">
-    {{ form.hidden_tag() }}
-    
+<div class="px-4 py-6 space-y-6 pb-32">
     <!-- 顶部导航 -->
     <div class="flex items-center gap-3">
-        <a href="javascript:history.back()" class="p-2 bg-white rounded-xl border border-gray-100 text-gray-400 active:scale-90 transition-transform">
+        <a href="javascript:history.back()" class="back-button">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
         </a>
         <div>
@@ -16,178 +14,323 @@
         </div>
     </div>
 
-    <!-- 第一步：基础文字信息 -->
-    <section class="bg-white rounded-[40px] p-8 shadow-sm border border-gray-100 space-y-6">
-        <!-- 1. 素材标题 -->
-        <div class="space-y-2">
-            <div class="flex items-center gap-2 ml-2">
-                <span class="w-1 h-3 bg-blue-600 rounded-full"></span>
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">素材标题</label>
-                <span class="text-[8px] text-red-400 font-bold bg-red-50 px-1.5 py-0.5 rounded uppercase">必填</span>
-            </div>
-            {{ form.title(class="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500/10 outline-none text-sm font-bold placeholder:text-gray-300", placeholder="给素材起一个吸引人的名字...") }}
+    {% if not material %}
+    <!-- Tab 切换 -->
+    <div class="bg-white rounded-[40px] p-2 shadow-sm border border-gray-100">
+        <div class="flex gap-2">
+            <button type="button" id="tab-single" class="flex-1 py-3 px-4 rounded-[30px] text-sm font-bold transition-all bg-gray-900 text-white" onclick="switchTab('single')">
+                单篇上传
+            </button>
+            <button type="button" id="tab-batch" class="flex-1 py-3 px-4 rounded-[30px] text-sm font-bold transition-all bg-gray-50 text-gray-400" onclick="switchTab('batch')">
+                批量上传
+            </button>
         </div>
-
-        <!-- 2. 设置分类 -->
-        <div class="space-y-2">
-            <div class="flex items-center gap-2 ml-2">
-                <span class="w-1 h-3 bg-blue-600 rounded-full"></span>
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">设置分类</label>
-                <span class="text-[8px] text-red-400 font-bold bg-red-50 px-1.5 py-0.5 rounded uppercase">必选</span>
-            </div>
-            <div class="relative">
-                {{ form.material_type_id(class="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500/10 outline-none text-sm font-medium appearance-none") }}
-                <div class="absolute right-5 top-5 text-gray-400 pointer-events-none">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                </div>
-            </div>
-        </div>
-
-        <!-- 3. 上传文案 -->
-        <div class="space-y-2">
-            <div class="flex items-center gap-2 ml-2">
-                <span class="w-1 h-3 bg-blue-600 rounded-full"></span>
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">上传文案</label>
-                <span class="text-[8px] text-red-400 font-bold bg-red-50 px-1.5 py-0.5 rounded uppercase">必填</span>
-            </div>
-            {{ form.description(rows="4", class="w-full px-6 py-5 bg-gray-50 border-none rounded-[28px] focus:ring-2 focus:ring-blue-500/10 outline-none text-sm leading-relaxed", placeholder="输入相关的推广文案、关键词或描述...") }}
-        </div>
-    </section>
-
-    <!-- 第二步：图片资源上传 -->
-    <section class="space-y-6">
-        
-        <!-- 区块A：封面图设置 (1:1 预览效果) -->
-        <div class="space-y-3">
-            <div class="flex items-center justify-between px-2">
-                <div class="flex items-center gap-2">
-                    <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest">区块一：设置封面图</h3>
-                    <span class="text-[8px] text-red-400 font-bold bg-red-50 px-1.5 py-0.5 rounded uppercase">必填</span>
-                </div>
-                <span class="text-[9px] text-blue-500 font-bold uppercase">Main Cover (1:1 Ratio)</span>
-            </div>
-            
-            <!-- 封面图上传区域 -->
-            <div class="relative aspect-square w-full bg-white rounded-[40px] border-2 border-dashed border-gray-200 shadow-sm flex flex-col items-center justify-center text-gray-300 overflow-hidden active:bg-gray-50 transition-all group cursor-pointer" id="cover-upload-area">
-                <!-- 上传前的提示 -->
-                <div id="cover-placeholder" class="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center gap-2 {% if material and cover_image %}hidden{% endif %}">
-                    <div class="p-4 bg-white rounded-full shadow-sm">
-                        <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    </div>
-                    <p class="text-[10px] font-bold uppercase tracking-wider">点击上传 1:1 封面</p>
-                </div>
-
-                <!-- 上传后的预览 -->
-                <img id="cover-preview" class="absolute inset-0 w-full h-full object-cover {% if material and cover_image %}{% else %}hidden{% endif %}" alt="封面预览" {% if material and cover_image %}src="{{ cover_image.image_url }}"{% endif %}>
-
-                <!-- UI 装饰 -->
-                <div class="absolute bottom-6 left-6 px-3 py-1 bg-black/20 backdrop-blur-md rounded-full text-[10px] text-white font-mono">
-                    1 / 1
-                </div>
-                <div class="absolute top-6 left-6 px-3 py-1 bg-blue-600/90 backdrop-blur-md rounded-lg text-[9px] text-white font-bold uppercase shadow-lg">
-                    封面预览
-                </div>
-
-                <!-- 隐藏的文件输入 -->
-                <input type="file" id="cover-input" name="cover_image" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
-            </div>
-            <p class="text-center text-[9px] text-gray-400">提示：此区域比例已锁定为 1:1，模拟客户端首图展示效果</p>
-        </div>
-
-        <!-- 区块B：上传剩余图片 -->
-        <div class="space-y-3">
-            <div class="flex items-center justify-between px-2">
-                <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest">区块二：上传细节图</h3>
-                <span class="text-[9px] text-gray-400 font-bold uppercase">Others (Max 8)</span>
-            </div>
-            <!-- 细节图上传和预览 -->
-            <div class="bg-gray-50 rounded-2xl p-6 space-y-4">
-                <!-- 现有图片（仅编辑模式） -->
-                {% if material and other_images %}
-                    <div>
-                        <p class="text-sm font-medium text-gray-700 mb-3">现有细节图</p>
-                        <div class="grid grid-cols-4 gap-3" id="existing-images">
-                            {% for img in other_images %}
-                                <div class="relative aspect-square rounded-xl overflow-hidden bg-gray-100 existing-image-item" data-image-id="{{ img.id }}">
-                                    <img src="{{ img.image_url }}" class="w-full h-full object-cover">
-                                    <div class="absolute top-1 right-1">
-                                        <input type="checkbox" name="keep_image_{{ img.id }}" checked class="w-4 h-4">
-                                    </div>
-                                    <div class="absolute bottom-1 right-1 bg-black/40 px-1 rounded text-[8px] text-white">{{ loop.index }}</div>
-                                </div>
-                            {% endfor %}
-                        </div>
-                        <p class="text-[10px] text-gray-400 mt-2">取消勾选可以删除现有图片</p>
-                    </div>
-                {% endif %}
-                
-                <!-- 新增图片预览 -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-3">{% if material %}添加新细节图{% else %}上传细节图{% endif %}</label>
-                    <div class="grid grid-cols-4 gap-3" id="new-images-preview">
-                        <!-- 预览图会动态添加到这里 -->
-                    </div>
-                    <div class="mt-3">
-                        <input type="file" id="other-images-input" name="other_images" accept="image/*" multiple class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                    </div>
-                    <p class="text-[10px] text-gray-400 mt-2">提示：支持多选，最多上传8张</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 第三步：发布设置 -->
-    <section class="bg-white rounded-[40px] p-8 shadow-sm border border-gray-100">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                </div>
-                <div>
-                    <p class="text-sm font-bold text-gray-800">立即上架素材</p>
-                    <p class="text-[10px] text-gray-400 uppercase tracking-tighter">Published Status</p>
-                </div>
-            </div>
-            <!-- 开关 -->
-            <label for="is_published" class="w-12 h-6 bg-blue-600 rounded-full relative shadow-inner transition-colors cursor-pointer">
-                {{ form.is_published(class="hidden", id="is_published") }}
-                <div id="toggle-slider" class="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-200" style="left: 4px;"></div>
-            </label>
-        </div>
-    </section>
-
-    <!-- 底部固定操作栏 -->
-    <div class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-2xl border-t border-gray-100 p-6 pb-10 z-[100] flex gap-4">
-        <button type="button" class="flex-grow py-4 bg-gray-50 text-gray-400 font-bold rounded-2xl active:scale-95 transition-transform" onclick="history.back()">{% if material %}取消编辑{% else %}取消发布{% endif %}</button>
-        <button type="submit" form="material-form" class="flex-[2.5] py-4 bg-gray-900 text-white font-bold rounded-2xl shadow-2xl shadow-gray-200 active:scale-95 transition-transform flex items-center justify-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-            <span>{% if material %}保存修改{% else %}确认发布并保存{% endif %}</span>
-        </button>
     </div>
-</form>
+    {% endif %}
+
+    <!-- 单篇上传表单 -->
+    <div id="single-upload" class="{% if material %}block{% else %}block{% endif %}">
+        <form id="material-form" method="POST" enctype="multipart/form-data" class="space-y-6">
+            {{ form.hidden_tag() }}
+
+            <!-- 第一步：基础文字信息 -->
+            <section class="bg-white rounded-[40px] p-8 shadow-sm border border-gray-100 space-y-6">
+                <!-- 1. 素材标题 -->
+                <div class="space-y-2">
+                    <div class="flex items-center gap-2 ml-2">
+                        <span class="w-1 h-3 bg-blue-600 rounded-full"></span>
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">素材标题</label>
+                        <span class="text-[8px] text-red-400 font-bold bg-red-50 px-1.5 py-0.5 rounded uppercase">必填</span>
+                    </div>
+                    {{ form.title(class="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500/10 outline-none text-sm font-bold placeholder:text-gray-300", placeholder="给素材起一个吸引人的名字...") }}
+                </div>
+
+                <!-- 2. 设置分类 -->
+                <div class="space-y-2">
+                    <div class="flex items-center gap-2 ml-2">
+                        <span class="w-1 h-3 bg-blue-600 rounded-full"></span>
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">设置分类</label>
+                        <span class="text-[8px] text-red-400 font-bold bg-red-50 px-1.5 py-0.5 rounded uppercase">必选</span>
+                    </div>
+                    <div class="relative">
+                        {{ form.material_type_id(class="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500/10 outline-none text-sm font-medium appearance-none") }}
+                        <div class="absolute right-5 top-5 text-gray-400 pointer-events-none">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 上传文案 -->
+                <div class="space-y-2">
+                    <div class="flex items-center gap-2 ml-2">
+                        <span class="w-1 h-3 bg-blue-600 rounded-full"></span>
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">上传文案</label>
+                        <span class="text-[8px] text-red-400 font-bold bg-red-50 px-1.5 py-0.5 rounded uppercase">必填</span>
+                    </div>
+                    {{ form.description(rows="4", class="w-full px-6 py-5 bg-gray-50 border-none rounded-[28px] focus:ring-2 focus:ring-blue-500/10 outline-none text-sm leading-relaxed", placeholder="输入相关的推广文案、关键词或描述...") }}
+                </div>
+            </section>
+
+            <!-- 第二步：图片资源上传 -->
+            <section class="space-y-6">
+                
+                <!-- 区块A：封面图设置 (1:1 预览效果) -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between px-2">
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest">区块一：设置封面图</h3>
+                            <span class="text-[8px] text-red-400 font-bold bg-red-50 px-1.5 py-0.5 rounded uppercase">必填</span>
+                        </div>
+                        <span class="text-[9px] text-blue-500 font-bold uppercase">Main Cover (1:1 Ratio)</span>
+                    </div>
+                    
+                    <!-- 封面图上传区域 -->
+                    <div class="relative aspect-square w-full bg-white rounded-[40px] border-2 border-dashed border-gray-200 shadow-sm flex flex-col items-center justify-center text-gray-300 overflow-hidden active:bg-gray-50 transition-all group cursor-pointer" id="cover-upload-area">
+                        <!-- 上传前的提示 -->
+                        <div id="cover-placeholder" class="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center gap-2 {% if material and cover_image %}hidden{% endif %}">
+                            <div class="p-4 bg-white rounded-full shadow-sm">
+                                <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            </div>
+                            <p class="text-[10px] font-bold uppercase tracking-wider">点击上传 1:1 封面</p>
+                        </div>
+
+                        <!-- 上传后的预览 -->
+                        <img id="cover-preview" class="absolute inset-0 w-full h-full object-cover {% if material and cover_image %}{% else %}hidden{% endif %}" alt="封面预览" {% if material and cover_image %}src="{{ cover_image.image_url }}"{% endif %}>
+
+                        <!-- UI 装饰 -->
+                        <div class="absolute bottom-6 left-6 px-3 py-1 bg-black/20 backdrop-blur-md rounded-full text-[10px] text-white font-mono">
+                            1 / 1
+                        </div>
+                        <div class="absolute top-6 left-6 px-3 py-1 bg-blue-600/90 backdrop-blur-md rounded-lg text-[9px] text-white font-bold uppercase shadow-lg">
+                            封面预览
+                        </div>
+
+                        <!-- 隐藏的文件输入 -->
+                        <input type="file" id="cover-input" name="cover_image" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
+                    </div>
+                    <p class="text-center text-[9px] text-gray-400">提示：此区域比例已锁定为 1:1，模拟客户端首图展示效果</p>
+                </div>
+
+                <!-- 区块B：上传剩余图片 -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between px-2">
+                        <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest">区块二：上传细节图</h3>
+                        <span class="text-[9px] text-gray-400 font-bold uppercase">Others (Max 8)</span>
+                    </div>
+                    <!-- 细节图上传和预览 -->
+                    <div class="bg-gray-50 rounded-2xl p-6 space-y-4">
+                        <!-- 现有图片（仅编辑模式） -->
+                        {% if material and other_images %}
+                            <div>
+                                <p class="text-sm font-medium text-gray-700 mb-3">现有细节图</p>
+                                <div class="grid grid-cols-4 gap-3" id="existing-images">
+                                    {% for img in other_images %}
+                                        <div class="relative aspect-square rounded-xl overflow-hidden bg-gray-100 existing-image-item" data-image-id="{{ img.id }}">
+                                            <img src="{{ img.image_url }}" class="w-full h-full object-cover">
+                                            <div class="absolute top-1 right-1">
+                                                <input type="checkbox" name="keep_image_{{ img.id }}" checked class="w-4 h-4">
+                                            </div>
+                                            <div class="absolute bottom-1 right-1 bg-black/40 px-1 rounded text-[8px] text-white">{{ loop.index }}</div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <p class="text-[10px] text-gray-400 mt-2">取消勾选可以删除现有图片</p>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- 新增图片预览 -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">{% if material %}添加新细节图{% else %}上传细节图{% endif %}</label>
+                            <div class="grid grid-cols-4 gap-3" id="new-images-preview">
+                            </div>
+                            <div class="mt-3">
+                                <input type="file" id="other-images-input" name="other_images" accept="image/*" multiple class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            </div>
+                            <p class="text-[10px] text-gray-400 mt-2">提示：支持多选，最多上传8张</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 第三步：发布设置 -->
+            <section class="bg-white rounded-[40px] p-8 shadow-sm border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-gray-800">立即上架素材</p>
+                            <p class="text-[10px] text-gray-400 uppercase tracking-tighter">Published Status</p>
+                        </div>
+                    </div>
+                    <!-- 开关 -->
+                    <label for="is_published" class="w-12 h-6 bg-blue-600 rounded-full relative shadow-inner transition-colors cursor-pointer">
+                        {{ form.is_published(class="hidden", id="is_published") }}
+                        <div id="toggle-slider" class="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-200" style="left: 4px;"></div>
+                    </label>
+                </div>
+            </section>
+
+            <!-- 底部固定操作栏 -->
+            <div class="fixed-bottom-actions">
+                <button type="button" class="flex-grow py-4 btn-secondary" onclick="history.back()">{% if material %}取消编辑{% else %}取消发布{% endif %}</button>
+                <button type="submit" form="material-form" class="flex-[2.5] py-4 btn-primary flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                    <span>{% if material %}保存修改{% else %}确认发布并保存{% endif %}</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 批量上传区域 -->
+    <div id="batch-upload" class="hidden">
+        <div class="space-y-6">
+            <!-- 批量上传说明 -->
+            <section class="bg-white rounded-[40px] p-8 shadow-sm border border-gray-100 space-y-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-gray-800">文件夹结构要求</p>
+                        <p class="text-[10px] text-gray-400">每个子文件夹代表一个素材</p>
+                    </div>
+                </div>
+                <div class="bg-gray-50 rounded-2xl p-4 space-y-2">
+                    <p class="text-xs font-mono text-gray-600">📁 素材库/</p>
+                    <p class="text-xs font-mono text-gray-600 ml-4">📁 01号/</p>
+                    <p class="text-xs font-mono text-gray-600 ml-8">🖼️ 0.jpg</p>
+                    <p class="text-xs font-mono text-gray-600 ml-8">🖼️ 1.jpg</p>
+                    <p class="text-xs font-mono text-gray-600 ml-8">📄 文案.txt</p>
+                    <p class="text-xs font-mono text-gray-600 ml-4">📁 02号/</p>
+                    <p class="text-xs font-mono text-gray-600 ml-8">...</p>
+                </div>
+                <div class="bg-yellow-50 rounded-2xl p-4">
+                    <p class="text-xs text-yellow-700">
+                        <strong>文案.txt 格式：</strong><br>
+                        title: "素材标题"<br>
+                        content: "素材文案内容，支持多行"
+                    </p>
+                </div>
+            </section>
+
+            <!-- 文件夹选择区域 -->
+            <section class="bg-white rounded-[40px] p-8 shadow-sm border border-gray-100">
+                <div class="space-y-4">
+                    <div id="batch-upload-area" class="relative aspect-video w-full bg-gray-50 rounded-[30px] border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-300 overflow-hidden active:bg-gray-100 transition-all cursor-pointer">
+                        <div class="p-6 bg-white rounded-full shadow-sm">
+                            <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                        </div>
+                        <p class="text-sm font-bold text-gray-400 mt-4">点击选择文件夹</p>
+                        <p class="text-[10px] text-gray-300">或拖拽文件夹到此处</p>
+                        <input type="file" id="batch-folder-input" webkitdirectory directory multiple class="absolute inset-0 opacity-0 cursor-pointer">
+                    </div>
+                    
+                    <!-- 已选择的文件信息 -->
+                    <div id="batch-file-info" class="hidden">
+                        <div class="bg-blue-50 rounded-2xl p-4">
+                            <p class="text-sm font-bold text-blue-700">已检测到 <span id="folder-count">0</span> 个素材文件夹</p>
+                            <p class="text-[10px] text-blue-500 mt-1">共 <span id="file-count">0</span> 个文件</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 上传进度 -->
+            <section id="batch-progress-section" class="hidden bg-white rounded-[40px] p-8 shadow-sm border border-gray-100">
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-bold text-gray-800">上传进度</p>
+                        <p class="text-sm font-mono text-blue-600"><span id="progress-current">0</span> / <span id="progress-total">0</span></p>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                        <div id="progress-bar" class="bg-blue-600 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="progress-text" class="text-[10px] text-gray-400">准备上传...</p>
+                </div>
+            </section>
+
+            <!-- 上传结果 -->
+            <section id="batch-result-section" class="hidden bg-white rounded-[40px] p-8 shadow-sm border border-gray-100">
+                <div class="space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-green-50 flex items-center justify-center text-green-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-gray-800">上传完成</p>
+                            <p class="text-[10px] text-gray-400">成功上传 <span id="success-count">0</span> 个素材</p>
+                        </div>
+                    </div>
+                    <div id="batch-errors" class="hidden">
+                        <p class="text-sm font-medium text-red-600 mb-2">失败的素材：</p>
+                        <div id="error-list" class="bg-red-50 rounded-2xl p-4 space-y-2"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 底部操作栏 -->
+            <div class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-2xl border-t border-gray-100 p-6 pb-10 z-[100] flex gap-4">
+                <button type="button" class="flex-grow py-4 bg-gray-50 text-gray-400 font-bold rounded-2xl active:scale-95 transition-transform" onclick="history.back()">返回</button>
+                <button type="button" id="batch-upload-btn" class="flex-[2.5] py-4 bg-gray-300 text-gray-500 font-bold rounded-2xl shadow-2xl shadow-gray-200 active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled onclick="startBatchUpload()">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                    <span>开始批量上传</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- 存储要删除的图片ID -->
 <input type="hidden" name="delete_image_ids" id="delete-image-ids" value="">
 
 <script>
+    let selectedFiles = [];
+
+    // Tab 切换
+    function switchTab(tab) {
+        const singleUpload = document.getElementById('single-upload');
+        const batchUpload = document.getElementById('batch-upload');
+        const tabSingle = document.getElementById('tab-single');
+        const tabBatch = document.getElementById('tab-batch');
+        
+        if (tab === 'single') {
+            singleUpload.classList.remove('hidden');
+            batchUpload.classList.add('hidden');
+            tabSingle.classList.remove('bg-gray-50', 'text-gray-400');
+            tabSingle.classList.add('bg-gray-900', 'text-white');
+            tabBatch.classList.remove('bg-gray-900', 'text-white');
+            tabBatch.classList.add('bg-gray-50', 'text-gray-400');
+        } else {
+            singleUpload.classList.add('hidden');
+            batchUpload.classList.remove('hidden');
+            tabBatch.classList.remove('bg-gray-50', 'text-gray-400');
+            tabBatch.classList.add('bg-gray-900', 'text-white');
+            tabSingle.classList.remove('bg-gray-900', 'text-white');
+            tabSingle.classList.add('bg-gray-50', 'text-gray-400');
+        }
+    }
+
     // 等待 DOM 加载完成
     document.addEventListener('DOMContentLoaded', function() {
-        // 表单验证
+        // 表单验证（单篇上传）
         const form = document.getElementById('material-form');
         const coverInput = document.getElementById('cover-input');
         const otherImagesInput = document.getElementById('other-images-input');
         const newImagesPreview = document.getElementById('new-images-preview');
 
-        form.addEventListener('submit', function(e) {
-            // 检查封面图是否上传（仅在添加模式下需要）
-            const isEditMode = {% if material %}true{% else %}false{% endif %};
-            if (!isEditMode && (!coverInput.files || coverInput.files.length === 0)) {
-                e.preventDefault();
-                alert('请上传封面图！');
-                document.getElementById('cover-upload-area').scrollIntoView({ behavior: 'smooth', block: 'center' });
-                return;
-            }
-        });
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const isEditMode = {% if material %}true{% else %}false{% endif %};
+                if (!isEditMode && (!coverInput || !coverInput.files || coverInput.files.length === 0)) {
+                    e.preventDefault();
+                    alert('请上传封面图！');
+                    document.getElementById('cover-upload-area').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+            });
+        }
 
         // 开关切换逻辑
         const toggle = document.querySelector('label[for="is_published"]');
@@ -195,7 +338,6 @@
         const checkbox = document.getElementById('is_published');
 
         if (toggle && slider && checkbox) {
-            // 初始化开关状态
             function updateToggleState() {
                 if (checkbox.checked) {
                     toggle.classList.remove('bg-gray-300');
@@ -207,11 +349,7 @@
                     slider.style.transform = 'translateX(0)';
                 }
             }
-            
-            // 初始化
             updateToggleState();
-
-            // 移除preventDefault，让label正常工作
             toggle.addEventListener('click', function(e) {
                 setTimeout(updateToggleState, 10);
             });
@@ -236,13 +374,12 @@
             });
         }
 
-        // 细节图预览功能 - 简化版本，不使用 DataTransfer
+        // 细节图预览功能
         if (otherImagesInput && newImagesPreview) {
             otherImagesInput.addEventListener('change', function(e) {
                 const files = Array.from(e.target.files);
                 const isEditMode = {% if material %}true{% else %}false{% endif %};
                 
-                // 计算已有图片数量
                 let existingCount = 0;
                 if (isEditMode) {
                     const existingImages = document.querySelectorAll('#existing-images .existing-image-item');
@@ -258,18 +395,14 @@
                         return;
                     }
                     alert(`最多只能上传8张图片，本次只能添加${remaining}张`);
-                    // 需要截断文件，但由于不能直接修改 FileList，我们直接保留用户选择
                 }
-
-                // 直接渲染预览，不管理复杂的文件列表
                 renderPreviews(files);
             });
         }
 
-        // 渲染细节图预览
         function renderPreviews(files) {
+            if (!newImagesPreview) return;
             newImagesPreview.innerHTML = '';
-            
             files.forEach((file, index) => {
                 const reader = new FileReader();
                 reader.onload = function(event) {
@@ -284,6 +417,187 @@
                 reader.readAsDataURL(file);
             });
         }
+
+        // 批量上传 - 文件夹选择
+        const batchFolderInput = document.getElementById('batch-folder-input');
+        const batchUploadBtn = document.getElementById('batch-upload-btn');
+        const batchFileInfo = document.getElementById('batch-file-info');
+
+        if (batchFolderInput) {
+            batchFolderInput.addEventListener('change', function(e) {
+                selectedFiles = Array.from(e.target.files);
+                if (selectedFiles.length > 0) {
+                    processSelectedFiles(selectedFiles);
+                }
+            });
+        }
     });
+
+    function processSelectedFiles(files) {
+        const folders = new Map();
+        
+        files.forEach(file => {
+            const path = file.webkitRelativePath || file.name;
+            const parts = path.split('/');
+            let folderName = '';
+            
+            if (parts.length >= 3) {
+                folderName = parts[1];
+            } else if (parts.length >= 2) {
+                folderName = parts[0];
+            }
+            
+            if (folderName) {
+                if (!folders.has(folderName)) {
+                    folders.set(folderName, []);
+                }
+                folders.get(folderName).push({
+                    file: file,
+                    path: path,
+                    name: parts[parts.length - 1]
+                });
+            }
+        });
+
+        const folderCount = folders.size;
+        const fileCount = files.length;
+
+        document.getElementById('folder-count').textContent = folderCount;
+        document.getElementById('file-count').textContent = fileCount;
+        document.getElementById('batch-file-info').classList.remove('hidden');
+
+        const batchUploadBtn = document.getElementById('batch-upload-btn');
+        if (folderCount > 0) {
+            batchUploadBtn.disabled = false;
+            batchUploadBtn.classList.remove('bg-gray-300', 'text-gray-500');
+            batchUploadBtn.classList.add('bg-gray-900', 'text-white');
+        }
+
+        window.foldersData = folders;
+    }
+
+    async function startBatchUpload() {
+        if (!window.foldersData || window.foldersData.size === 0) {
+            alert('请先选择文件夹！');
+            return;
+        }
+
+        const batchUploadBtn = document.getElementById('batch-upload-btn');
+        const progressSection = document.getElementById('batch-progress-section');
+        const resultSection = document.getElementById('batch-result-section');
+        const progressBar = document.getElementById('progress-bar');
+        const progressCurrent = document.getElementById('progress-current');
+        const progressTotal = document.getElementById('progress-total');
+        const progressText = document.getElementById('progress-text');
+
+        batchUploadBtn.disabled = true;
+        progressSection.classList.remove('hidden');
+
+        const folders = Array.from(window.foldersData.entries());
+        const total = folders.length;
+        progressTotal.textContent = total;
+
+        let successCount = 0;
+        const errors = [];
+        const skipped = [];
+
+        for (let i = 0; i < folders.length; i++) {
+            const [folderName, files] = folders[i];
+            progressCurrent.textContent = i + 1;
+            progressText.textContent = `正在处理: ${folderName}`;
+            progressBar.style.width = `${((i + 1) / total) * 100}%`;
+
+            try {
+                const formData = new FormData();
+                formData.append('folder_name', folderName);
+
+                const textFile = files.find(f => f.name === '文案.txt');
+                if (textFile) {
+                    formData.append('text_file', textFile.file);
+                }
+
+                const imageFiles = files.filter(f => /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(f.name));
+                imageFiles.sort((a, b) => a.name.localeCompare(b.name));
+                
+                if (imageFiles.length === 0) {
+                    skipped.push({ folder: folderName, reason: '没有找到图片文件' });
+                    continue;
+                }
+                
+                imageFiles.forEach((f, idx) => {
+                    formData.append(`images[${idx}]`, f.file);
+                });
+
+                const response = await fetch('{{ url_for("admin.batch_upload_material") }}', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    successCount++;
+                } else {
+                    if (result.invalid_files && result.invalid_files.length > 0) {
+                        errors.push({ 
+                            folder: folderName, 
+                            error: '文件验证失败',
+                            details: result.invalid_files
+                        });
+                    } else {
+                        errors.push({ folder: folderName, error: result.message });
+                    }
+                }
+            } catch (error) {
+                errors.push({ folder: folderName, error: error.message || '网络错误' });
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
+
+        progressSection.classList.add('hidden');
+        resultSection.classList.remove('hidden');
+        document.getElementById('success-count').textContent = successCount;
+
+        if (errors.length > 0 || skipped.length > 0) {
+            document.getElementById('batch-errors').classList.remove('hidden');
+            const errorList = document.getElementById('error-list');
+            let html = '';
+            
+            if (skipped.length > 0) {
+                html += `<div class="mb-3"><p class="text-xs font-bold text-yellow-600 mb-2">跳过的素材：</p>`;
+                skipped.forEach(s => {
+                    html += `
+                        <div class="flex justify-between items-center py-1">
+                            <span class="text-xs text-yellow-700">${s.folder}</span>
+                            <span class="text-xs text-yellow-500">${s.reason}</span>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+            
+            if (errors.length > 0) {
+                html += `<div><p class="text-xs font-bold text-red-600 mb-2">失败的素材：</p>`;
+                errors.forEach(e => {
+                    let detailsHtml = '';
+                    if (e.details) {
+                        detailsHtml = `<div class="text-[10px] text-red-400 mt-1 ml-2">${e.details.join('; ')}</div>`;
+                    }
+                    html += `
+                        <div class="py-1">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-red-700">${e.folder}</span>
+                                <span class="text-xs text-red-500">${e.error}</span>
+                            </div>
+                            ${detailsHtml}
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+            
+            errorList.innerHTML = html;
+        }
+    }
 </script>
 {% endblock %}
