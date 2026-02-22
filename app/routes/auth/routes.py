@@ -4,7 +4,7 @@ from datetime import datetime, timedelta  # 导入日期时间模块
 from app import db  # 导入数据库实例
 from app.models import User, RegisterSecret, Config  # 导入数据模型
 from app.forms import LoginForm, RegisterForm  # 导入表单类
-from app.utils.rate_limit import rate_limit  # 导入限流装饰器
+from app.utils.rate_limit import limiter as rate_limit
 import random  # 导入随机数模块
 import smtplib
 import logging
