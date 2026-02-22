@@ -107,6 +107,10 @@ def create_app(config_class=Config):
     def load_user(user_id):
         return User.query.get(int(user_id))
 
+    # 初始化 Redis 分布式限流器（必须在注册蓝图之前！）
+    from app.utils.rate_limit import init_limiter
+    init_limiter(app)
+
     # 全局设备锁验证
     @app.before_request
     def check_device_lock():
@@ -177,9 +181,6 @@ def create_app(config_class=Config):
     from app.utils.logger import setup_logging
     setup_logging(app)
     
-    # 初始化 Redis 分布式限流器
-    from app.utils.rate_limit import init_limiter
-    init_limiter(app)
-    
+
     # 返回应用实例
     return app

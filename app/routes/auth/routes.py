@@ -4,7 +4,7 @@ from datetime import datetime, timedelta  # 导入日期时间模块
 from app import db  # 导入数据库实例
 from app.models import User, RegisterSecret, Config  # 导入数据模型
 from app.forms import LoginForm, RegisterForm  # 导入表单类
-from app.utils.rate_limit import limiter as rate_limit
+from app.utils.rate_limit import limiter
 import random  # 导入随机数模块
 import smtplib
 import logging
@@ -17,7 +17,7 @@ bp = Blueprint('auth', __name__, url_prefix='/auth')  # 创建认证路由蓝图
 
 
 @bp.route('/send-code', methods=['POST'])
-@rate_limit('send_code', max_requests=3, time_window=60)
+@limiter.limit("3 per minute")
 def send_code():
     """发送验证码"""
     try:
@@ -363,7 +363,7 @@ def forgot_password():
 
 
 @bp.route('/forgot-send-code', methods=['POST'])
-@rate_limit('forgot_send_code', max_requests=3, time_window=60)
+@limiter.limit("3 per minute")
 def forgot_send_code():
     """忘记密码发送验证码"""
     try:
