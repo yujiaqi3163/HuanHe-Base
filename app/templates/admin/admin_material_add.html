@@ -441,10 +441,23 @@
             const parts = path.split('/');
             let folderName = '';
             
-            if (parts.length >= 3) {
-                folderName = parts[1];
-            } else if (parts.length >= 2) {
-                folderName = parts[0];
+            // 更稳健的文件夹名称解析
+            if (parts.length >= 2) {
+                // 如果路径是 "根文件夹/子文件夹/文件"，取子文件夹
+                // 如果路径是 "子文件夹/文件"，取子文件夹
+                folderName = parts[parts.length - 2];
+            }
+            
+            // 如果folderName还是空，使用文件名的前缀作为fallback
+            if (!folderName || folderName === '') {
+                // 尝试从文件名提取文件夹名（例如 "412号_01.jpg" → "412号"）
+                const match = file.name.match(/^(\d+号)/);
+                if (match) {
+                    folderName = match[1];
+                } else {
+                    // 最后方案：使用文件所在的目录名（如果有的话）
+                    folderName = '素材_' + (folders.size + 1);
+                }
             }
             
             if (folderName) {
@@ -566,10 +579,12 @@
             if (skipped.length > 0) {
                 html += `<div class="mb-3"><p class="text-xs font-bold text-yellow-600 mb-2">跳过的素材：</p>`;
                 skipped.forEach(s => {
+                    const folderName = s.folder || '未命名素材';
+                    const reason = s.reason || '未知原因';
                     html += `
                         <div class="flex justify-between items-center py-1">
-                            <span class="text-xs text-yellow-700">${s.folder}</span>
-                            <span class="text-xs text-yellow-500">${s.reason}</span>
+                            <span class="text-xs text-yellow-700">${folderName}</span>
+                            <span class="text-xs text-yellow-500">${reason}</span>
                         </div>
                     `;
                 });
@@ -579,15 +594,17 @@
             if (errors.length > 0) {
                 html += `<div><p class="text-xs font-bold text-red-600 mb-2">失败的素材：</p>`;
                 errors.forEach(e => {
+                    const folderName = e.folder || '未命名素材';
+                    const error = e.error || '未知错误';
                     let detailsHtml = '';
-                    if (e.details) {
+                    if (e.details && e.details.length > 0) {
                         detailsHtml = `<div class="text-[10px] text-red-400 mt-1 ml-2">${e.details.join('; ')}</div>`;
                     }
                     html += `
                         <div class="py-1">
                             <div class="flex justify-between items-center">
-                                <span class="text-xs text-red-700">${e.folder}</span>
-                                <span class="text-xs text-red-500">${e.error}</span>
+                                <span class="text-xs text-red-700">${folderName}</span>
+                                <span class="text-xs text-red-500">${error}</span>
                             </div>
                             ${detailsHtml}
                         </div>
