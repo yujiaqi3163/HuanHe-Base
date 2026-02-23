@@ -3,7 +3,8 @@
 # 
 # 更新素材统计脚本
 # 功能说明：
-# 1. 更新素材的下载量、使用量等统计数据
+# 1. 为所有素材随机设置浏览量、收藏量、下载量
+# 2. 随机区间：0 - 100000
 # ============================================================
 
 import sys
@@ -24,16 +25,17 @@ def update_material_stats():
         print(f'找到 {len(materials)} 个素材')
         
         for material in materials:
-            material.view_count = random.randint(1, 10000)
-            material.favorite_count = random.randint(1, 10000)
-            material.download_count = random.randint(1, 10000)
+            material.view_count = random.randint(0, 100000)
+            material.favorite_count = random.randint(0, 100000)
+            material.download_count = random.randint(0, 100000)
             
             print(f'素材 #{material.id} - {material.title}: 浏览={material.view_count}, 收藏={material.favorite_count}, 下载={material.download_count}')
         
         from app import db
         db.session.commit()
         
-        print(f'成功更新了 {len(materials)} 个素材的统计数据')
+        print(f'\n✅ 成功更新了 {len(materials)} 个素材的统计数据')
+        print(f'   随机区间：0 - 100000')
 
 if __name__ == '__main__':
     update_material_stats()
