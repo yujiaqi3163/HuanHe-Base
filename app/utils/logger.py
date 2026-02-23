@@ -1,3 +1,13 @@
+# ============================================================
+# logger.py
+# 
+# 日志工具模块
+# 功能说明：
+# 1. 配置应用日志系统
+# 2. 支持日志分级（DEBUG/INFO/WARNING/ERROR）
+# 3. 日志文件轮转（防止文件过大）
+# ============================================================
+
 import logging
 import os
 from logging.handlers import RotatingFileHandler

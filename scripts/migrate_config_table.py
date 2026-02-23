@@ -1,3 +1,11 @@
+# ============================================================
+# migrate_config_table.py
+# 
+# 配置表迁移脚本
+# 功能说明：
+# 1. 迁移系统配置数据
+# ============================================================
+
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))

@@ -140,6 +140,60 @@
     let isRemixing = false;
     let pollInterval = null;
     
+    // 辅助函数：安全地设置状态文字和颜色
+    function setStatusText(text, color) {
+        const statusText = document.getElementById('status-text');
+        statusText.textContent = text;
+        
+        // 先移除所有颜色类，再添加新的
+        statusText.classList.remove('text-gray-400', 'text-blue-500', 'text-orange-500', 'text-red-500', 'text-green-500', 'text-yellow-500');
+        
+        // 添加对应颜色
+        switch(color) {
+            case 'gray':
+                statusText.classList.add('text-gray-400');
+                break;
+            case 'blue':
+                statusText.classList.add('text-blue-500');
+                break;
+            case 'orange':
+                statusText.classList.add('text-orange-500');
+                break;
+            case 'red':
+                statusText.classList.add('text-red-500');
+                break;
+            case 'green':
+                statusText.classList.add('text-green-500');
+                break;
+            case 'yellow':
+                statusText.classList.add('text-yellow-500');
+                break;
+        }
+    }
+    
+    // 辅助函数：重置按钮和状态
+    function resetButton() {
+        const btn = document.getElementById('remix-btn');
+        isRemixing = false;
+        btn.disabled = false;
+        btn.classList.remove('opacity-70', 'cursor-not-allowed');
+    }
+    
+    // 辅助函数：禁用按钮
+    function disableButton() {
+        const btn = document.getElementById('remix-btn');
+        btn.disabled = true;
+        btn.classList.add('opacity-70', 'cursor-not-allowed');
+    }
+    
+    // 辅助函数：清理轮询
+    function clearPolling() {
+        if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+        }
+    }
+    
     async function remixMaterial() {
         if (isRemixing) return;
         
@@ -151,17 +205,15 @@
         }
         
         isRemixing = true;
-        const btn = document.getElementById('remix-btn');
-        const statusText = document.getElementById('status-text');
-        
-        btn.disabled = true;
-        btn.classList.add('opacity-70', 'cursor-not-allowed');
-        statusText.textContent = '正在提交二创任务...';
-        statusText.classList.replace('text-gray-400', 'text-blue-500');
+        disableButton();
+        setStatusText('正在提交二创任务...', 'blue');
         
         const materialId = {{ material.id }};
         
         try {
+            // 清理旧的轮询（如果存在）
+            clearPolling();
+            
             // 1. 调用后端API提交异步任务
             const deviceId = getDeviceId();
             const response = await fetch(`/api/material/${materialId}/remix`, {
@@ -205,7 +257,7 @@
             }
             
             currentTaskId = result.task_id;
-            statusText.textContent = result.message;
+            setStatusText(result.message, 'blue');
             
             // 2. 开始轮询任务状态
             startPolling(currentTaskId);
@@ -219,96 +271,74 @@
             const waitMatch = errorMsg.match(/等待(\d+)秒/);
             if (waitMatch) {
                 const waitSeconds = parseInt(waitMatch[1]);
-                statusText.textContent = errorMsg;
-                statusText.classList.replace('text-blue-500', 'text-orange-500');
+                setStatusText(errorMsg, 'orange');
                 
                 // 禁用按钮，倒计时结束后恢复
-                btn.disabled = true;
-                btn.classList.add('opacity-70', 'cursor-not-allowed');
                 let countdown = waitSeconds;
                 
                 const countdownInterval = setInterval(() => {
                     countdown--;
                     if (countdown <= 0) {
                         clearInterval(countdownInterval);
-                        statusText.textContent = '生成结果将自动保存至作品库';
-                        statusText.classList.replace('text-orange-500', 'text-gray-400');
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-70', 'cursor-not-allowed');
-                        isRemixing = false;
+                        setStatusText('生成结果将自动保存至作品库', 'gray');
+                        resetButton();
                     } else {
-                        statusText.textContent = `请等待${countdown}秒后再试...`;
+                        setStatusText(`请等待${countdown}秒后再试...`, 'orange');
                     }
                 }, 1000);
             } else {
-                statusText.textContent = '二创失败：' + errorMsg;
-                statusText.classList.replace('text-blue-500', 'text-red-500');
-                isRemixing = false;
-                btn.disabled = false;
-                btn.classList.remove('opacity-70', 'cursor-not-allowed');
+                setStatusText('二创失败：' + errorMsg, 'red');
+                resetButton();
             }
         }
     }
     
     function startPolling(taskId) {
-        const statusText = document.getElementById('status-text');
-        const btn = document.getElementById('remix-btn');
-        
         // 每隔2秒查询一次任务状态
         pollInterval = setInterval(async () => {
             try {
                 const response = await fetch(`/api/task/${taskId}/status`);
                 const result = await response.json();
                 
-                statusText.textContent = result.message;
-                
                 if (result.status === 'SUCCESS') {
                     // 任务完成
-                    clearInterval(pollInterval);
-                    pollInterval = null;
+                    clearPolling();
                     
                     if (result.result && result.result.success) {
                         currentUserMaterialId = result.result.user_material_id;
-                        statusText.textContent = '🎉 二创完成！已保存至我的作品库';
-                        statusText.classList.replace('text-blue-500', 'text-green-500');
+                        setStatusText('🎉 二创完成！已保存至我的作品库', 'green');
                         
+                        // 恢复按钮状态，让用户可以再次操作
+                        resetButton();
+                        
+                        // 延迟弹出确认框，让用户先看到成功提示
                         setTimeout(() => {
                             if (confirm('素材二创成功！是否前往作品库查看？')) {
                                 window.location.href = '/my-materials';
                             }
-                        }, 1000);
+                            // 无论用户点击确认还是取消，成功提示都保留
+                        }, 500);
                     } else {
                         throw new Error(result.result?.error || '任务执行失败');
                     }
                     
-                    isRemixing = false;
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-70', 'cursor-not-allowed');
-                    
                 } else if (result.status === 'FAILURE') {
                     // 任务失败
-                    clearInterval(pollInterval);
-                    pollInterval = null;
+                    clearPolling();
                     
-                    statusText.textContent = '二创失败：' + (result.error || '未知错误');
-                    statusText.classList.replace('text-blue-500', 'text-red-500');
-                    
-                    isRemixing = false;
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-70', 'cursor-not-allowed');
+                    setStatusText('二创失败：' + (result.error || '未知错误'), 'red');
+                    resetButton();
+                } else {
+                    // 任务进行中，更新提示
+                    setStatusText(result.message, 'blue');
                 }
                 
             } catch (error) {
                 console.error('查询任务状态失败:', error);
-                clearInterval(pollInterval);
-                pollInterval = null;
+                clearPolling();
                 
-                statusText.textContent = '查询状态失败，请手动刷新';
-                statusText.classList.replace('text-blue-500', 'text-yellow-500');
-                
-                isRemixing = false;
-                btn.disabled = false;
-                btn.classList.remove('opacity-70', 'cursor-not-allowed');
+                setStatusText('查询状态失败，请手动刷新', 'yellow');
+                resetButton();
             }
         }, 2000);
     }

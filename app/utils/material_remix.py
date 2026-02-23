@@ -1,3 +1,12 @@
+# ============================================================
+# material_remix.py
+# 
+# 素材二创工具模块
+# 功能说明：
+# 1. optimize_copywriting: 调用DeepSeek API优化文案
+# 2. get_unique_css_recipes: 获取不重复的CSS样式配方
+# ============================================================
+
 # DeepSeek文案优化接口
 import os
 import openai

@@ -1,3 +1,14 @@
+# ============================================================
+# routes.py
+# 
+# 认证路由模块
+# 功能说明：
+# 1. 登录/注册/登出
+# 2. 发送验证码（限流：3 per minute）
+# 3. 忘记密码
+# 4. 设备绑定/解绑
+# ============================================================
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session, jsonify, current_app  # 导入Flask相关模块
 from flask_login import login_user, logout_user, current_user, login_required  # 导入用户认证相关模块
 from datetime import datetime, timedelta  # 导入日期时间模块

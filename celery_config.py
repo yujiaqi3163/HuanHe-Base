@@ -1,7 +1,24 @@
+# ============================================================
+# celery_config.py
+# 
+# Celery 配置文件
+# 功能说明：
+# 1. 创建 Celery 实例
+# 2. 配置 Redis 作为 Broker 和 Backend
+# 3. 配置任务序列化、时区等参数
+# 4. 自动发现并注册任务模块
+# ============================================================
+
 # Celery 配置文件
 import os
+import sys
+from pathlib import Path
 from celery import Celery
 from dotenv import load_dotenv
+
+# 0. 添加项目根目录到 Python 路径，确保能找到 app 模块
+project_root = Path(__file__).parent
+sys.path.insert(0, str(project_root))
 
 # 1. 第一步：先加载环境变量，确保后面 os.environ 能读到数据
 load_dotenv()
@@ -25,6 +42,19 @@ celery_app.conf.update(
     task_soft_time_limit=240,   # 软时间限制 240 秒
     worker_prefetch_multiplier=1,
     worker_max_tasks_per_child=1000,
+    # Redis 连接优化
+    broker_connection_retry_on_startup=True,
+    broker_connection_max_retries=10,
+    result_backend_transport_options={
+        'socket_connect_timeout': 30,
+        'socket_timeout': 60,
+        'retry_on_timeout': True
+    },
+    broker_transport_options={
+        'socket_connect_timeout': 30,
+        'socket_timeout': 60,
+        'retry_on_timeout': True
+    }
 )
 
 # 4. 第四步：最后加载任务。此时 celery_app 已经完全定义好了

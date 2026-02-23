@@ -1,3 +1,14 @@
+# ============================================================
+# routes.py
+# 
+# 主路由模块
+# 功能说明：
+# 1. 首页、素材详情页、我的作品库
+# 2. 素材二创API（异步处理 + 限流）
+# 3. 任务状态查询API
+# 4. 个人中心、安全中心
+# ============================================================
+
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, current_app  # 导入Flask相关模块
 from flask_login import login_required, current_user  # 导入登录相关模块
 from app.models import User, RegisterSecret, Material, UserMaterial, UserMaterialImage  # 导入数据模型
@@ -801,6 +812,91 @@ def api_delete_user_material(user_material_id):
         }), 500
 
 
+@bp.route('/api/user-materials/batch-delete', methods=['POST'])
+@login_required
+def api_batch_delete_user_materials():
+    """批量删除用户素材API"""
+    try:
+        from app.models import UserMaterial
+        
+        data = request.get_json()
+        user_material_ids = data.get('user_material_ids', [])
+        
+        if not user_material_ids or len(user_material_ids) == 0:
+            return jsonify({'success': False, 'message': '请选择要删除的素材'}), 400
+        
+        # 查询要删除的素材（仅允许删除自己的素材）
+        user_materials = UserMaterial.query.filter(
+            UserMaterial.id.in_(user_material_ids),
+            UserMaterial.user_id == current_user.id
+        ).all()
+        
+        if not user_materials:
+            return jsonify({'success': False, 'message': '未找到要删除的素材'}), 404
+        
+        logger.info(f'批量删除用户素材，用户ID: {current_user.id}，数量: {len(user_materials)}')
+        
+        # 删除素材（级联删除会自动删除关联的图片）
+        for user_material in user_materials:
+            db.session.delete(user_material)
+        
+        db.session.commit()
+        
+        logger.info(f'批量删除用户素材成功，用户ID: {current_user.id}，数量: {len(user_materials)}')
+        
+        return jsonify({
+            'success': True,
+            'message': f'成功删除 {len(user_materials)} 个素材'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'批量删除用户素材失败: {str(e)}', exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': f'删除失败: {str(e)}'
+        }), 500
+
+
+@bp.route('/api/user-materials/delete-all', methods=['POST'])
+@login_required
+def api_delete_all_user_materials():
+    """全部删除用户素材API"""
+    try:
+        from app.models import UserMaterial
+        
+        # 查询用户的所有素材
+        user_materials = UserMaterial.query.filter_by(
+            user_id=current_user.id
+        ).all()
+        
+        if not user_materials:
+            return jsonify({'success': False, 'message': '作品库已经是空的'}), 400
+        
+        logger.info(f'全部删除用户素材，用户ID: {current_user.id}，数量: {len(user_materials)}')
+        
+        # 删除所有素材（级联删除会自动删除关联的图片）
+        for user_material in user_materials:
+            db.session.delete(user_material)
+        
+        db.session.commit()
+        
+        logger.info(f'全部删除用户素材成功，用户ID: {current_user.id}')
+        
+        return jsonify({
+            'success': True,
+            'message': f'成功删除全部 {len(user_materials)} 个素材'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'全部删除用户素材失败: {str(e)}', exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': f'删除失败: {str(e)}'
+        }), 500
+
+
 @bp.route('/api/upload-image', methods=['POST'])
 @login_required
 @device_required
@@ -884,7 +980,7 @@ def material_detail(material_id):
 @bp.route('/api/material/<int:material_id>/remix', methods=['POST'])
 @login_required
 @device_required
-@limiter.limit("5 per minute", error_message="创作太频繁，请稍后再试")
+@limiter.limit("5 per minute")
 def api_remix_material(material_id):
     """素材二创API - 异步版本（限流：每分钟5次）"""
     logger.info(f'收到素材二创请求，素材ID: {material_id}')
@@ -918,6 +1014,7 @@ def api_remix_material(material_id):
 
 @bp.route('/api/task/<task_id>/status', methods=['GET'])
 @login_required
+@limiter.exempt
 def api_get_task_status(task_id):
     """查询任务状态API"""
     from celery.result import AsyncResult

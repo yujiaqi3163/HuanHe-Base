@@ -1,3 +1,13 @@
+# ============================================================
+# admin.py
+# 
+# 管理后台表单模块
+# 功能说明：
+# 1. 素材管理表单
+# 2. 用户管理表单
+# 3. 配置管理表单
+# ============================================================
+
 # 导入Flask-WTF表单相关模块
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, FileRequired

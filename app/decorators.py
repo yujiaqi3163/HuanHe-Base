@@ -1,4 +1,18 @@
 
+# ============================================================
+# 装饰器模块
+# 
+# 功能说明：
+# 1. @admin_required: 管理员权限验证
+# 2. @device_required: 设备绑定验证（从Header获取X-Device-ID）
+# 3. @permission_required: 细粒度权限检查
+# 
+# 使用场景：
+# - 管理后台接口使用 @admin_required
+# - 敏感操作API使用 @device_required
+# - 特定功能权限使用 @permission_required('权限名')
+# ============================================================
+
 from functools import wraps
 from flask import request, jsonify, redirect, url_for, flash
 from flask_login import current_user
