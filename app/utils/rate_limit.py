@@ -58,12 +58,12 @@ def init_limiter(app):
         else:
             # 如果无法解析，使用默认值
             # 根据常见的限流规则推断：
-            if "2 per 1 minute" in error_msg:
-                wait_seconds = 30
+            if "5 per 1 minute" in error_msg:
+                wait_seconds = 12
             elif "3 per 1 minute" in error_msg:
                 wait_seconds = 20
-            elif "5 per 1 minute" in error_msg:
-                wait_seconds = 12
+            elif "2 per 1 minute" in error_msg:
+                wait_seconds = 30
         
         return {
             "code": 429,

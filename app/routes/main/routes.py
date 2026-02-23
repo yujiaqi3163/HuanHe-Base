@@ -884,9 +884,9 @@ def material_detail(material_id):
 @bp.route('/api/material/<int:material_id>/remix', methods=['POST'])
 @login_required
 @device_required
-@limiter.limit("2 per minute")
+@limiter.limit("5 per minute", error_message="创作太频繁，请稍后再试")
 def api_remix_material(material_id):
-    """素材二创API - 异步版本（限流：每分钟2次）"""
+    """素材二创API - 异步版本（限流：每分钟5次）"""
     logger.info(f'收到素材二创请求，素材ID: {material_id}')
     
     try:
