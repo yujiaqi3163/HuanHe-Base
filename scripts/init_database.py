@@ -254,19 +254,33 @@ def create_sample_data():
         
         # 创建超级管理员
         print('\n[2/4] 创建超级管理员...')
-        if not User.query.filter_by(is_super_admin=True).first():
-            admin = User(
-                username='admin',
-                email='admin@example.com',
-                is_admin=True,
-                is_super_admin=True
-            )
-            admin.password = 'Aa123456!'
-            db.session.add(admin)
+        
+        # 定义要创建的超级管理员列表
+        super_admins = [
+            {'username': 'pc_yujiaqi', 'email': 'pc_yujiaqi@example.com'},
+            {'username': 'pe_yujiaqi', 'email': 'pe_yujiaqi@example.com'}
+        ]
+        
+        created_count = 0
+        for admin_info in super_admins:
+            if not User.query.filter_by(username=admin_info['username']).first():
+                admin = User(
+                    username=admin_info['username'],
+                    email=admin_info['email'],
+                    is_admin=True,
+                    is_super_admin=True
+                )
+                admin.password = 'Yun803163'
+                db.session.add(admin)
+                print(f'  ✅ 创建超级管理员: {admin_info["username"]}')
+                created_count += 1
+        
+        if created_count > 0:
             db.session.commit()
-            print('  ✅ 超级管理员创建成功')
-            print('  用户名: admin')
-            print('  密码: Aa123456!')
+            print(f'  ✅ 共创建 {created_count} 个超级管理员')
+            print('  账号1: pc_yujiaqi')
+            print('  账号2: pe_yujiaqi')
+            print('  统一密码: Yun803163')
         else:
             print('  ℹ️ 超级管理员已存在，跳过')
         

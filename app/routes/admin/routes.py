@@ -1219,7 +1219,7 @@ def batch_upload_material():
         for key in request.files:
             if key.startswith('images'):
                 files = request.files.getlist(key)
-                for f in files:
+                for f in files: 
                     if f and f.filename:
                         image_file_info.append({
                             'key': key,
