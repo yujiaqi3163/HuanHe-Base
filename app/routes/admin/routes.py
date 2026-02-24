@@ -21,7 +21,7 @@ from app import db
 from app.forms import MaterialForm
 from app.forms.material_type import MaterialTypeForm
 # 导入模型
-from app.models import Material, MaterialType, MaterialImage, RegisterSecret, User, Config, UserMaterial, UserMaterialImage, Permission, UserPermission, TerminalSecret
+from app.models import Material, MaterialType, MaterialImage, RegisterSecret, User, Config, UserMaterial, UserMaterialImage, Permission, UserPermission, TerminalSecret, Announcement
 # 导入日志模块
 from app.utils.logger import get_logger
 # 导入文件处理模块
@@ -147,15 +147,55 @@ def index():
 def update_wechat():
     """更新客服微信API"""
     try:
-        data = request.get_json()
-        wechat = data.get('wechat', '').strip()
+        wechat = request.form.get('wechat', '').strip()
         
         if not wechat:
             return jsonify({'success': False, 'message': '微信号不能为空'})
         
+        # 保存微信号
         Config.set_value('customer_service_wechat', wechat, '客服微信号')
         
+        # 处理二维码上传
+        if 'qrcode' in request.files:
+            qrcode_file = request.files['qrcode']
+            if qrcode_file and qrcode_file.filename:
+                # 验证文件
+                is_valid, error_msg = validate_file(qrcode_file, ALLOWED_IMAGE_EXTENSIONS)
+                if not is_valid:
+                    return jsonify({'success': False, 'message': error_msg})
+                
+                # 保存图片
+                qrcode_path = save_image(qrcode_file)
+                if qrcode_path:
+                    Config.set_value('customer_service_qrcode', qrcode_path, '客服微信二维码')
+        
         return jsonify({'success': True, 'message': '保存成功'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@bp.route('/config/wechat-qrcode', methods=['DELETE'])
+@login_required
+@admin_required
+@permission_required('config_manage')
+def delete_wechat_qrcode():
+    """删除客服微信二维码API"""
+    try:
+        # 获取旧的二维码路径
+        old_qrcode = Config.get_value('customer_service_qrcode', '')
+        if old_qrcode:
+            # 删除文件
+            old_path = os.path.join(current_app.root_path, old_qrcode.lstrip('/'))
+            if os.path.exists(old_path):
+                try:
+                    os.remove(old_path)
+                except:
+                    pass
+        
+        # 更新配置
+        Config.set_value('customer_service_qrcode', '', '客服微信二维码')
+        
+        return jsonify({'success': True, 'message': '删除成功'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
@@ -1270,3 +1310,103 @@ def batch_upload_material():
         db.session.rollback()
         logger.error(f'批量上传素材失败: {str(e)}')
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================
+# 公告管理路由
+# ============================================================
+
+@bp.route('/announcements')
+@login_required
+@admin_required
+@permission_required('config_manage')
+def announcements():
+    """公告列表页面"""
+    announcements = Announcement.query.order_by(Announcement.sort_order.desc(), Announcement.created_at.desc()).all()
+    return render_template('admin/admin_announcements.html', announcements=announcements)
+
+
+@bp.route('/announcements/add', methods=['GET', 'POST'])
+@login_required
+@admin_required
+@permission_required('config_manage')
+def announcement_add():
+    """添加公告页面"""
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        content = request.form.get('content', '').strip()
+        is_published = request.form.get('is_published') == 'on'
+        sort_order = int(request.form.get('sort_order', 0))
+        
+        if not title:
+            flash('公告标题不能为空', 'danger')
+            return redirect(url_for('admin.announcement_add'))
+        
+        if not content:
+            flash('公告内容不能为空', 'danger')
+            return redirect(url_for('admin.announcement_add'))
+        
+        announcement = Announcement(
+            title=title,
+            content=content,
+            is_published=is_published,
+            sort_order=sort_order
+        )
+        db.session.add(announcement)
+        db.session.commit()
+        
+        flash('公告添加成功', 'success')
+        return redirect(url_for('admin.announcements'))
+    
+    return render_template('admin/admin_announcement_form.html', announcement=None)
+
+
+@bp.route('/announcements/<int:announcement_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
+@permission_required('config_manage')
+def announcement_edit(announcement_id):
+    """编辑公告页面"""
+    announcement = Announcement.query.get_or_404(announcement_id)
+    
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        content = request.form.get('content', '').strip()
+        is_published = request.form.get('is_published') == 'on'
+        sort_order = int(request.form.get('sort_order', 0))
+        
+        if not title:
+            flash('公告标题不能为空', 'danger')
+            return redirect(url_for('admin.announcement_edit', announcement_id=announcement_id))
+        
+        if not content:
+            flash('公告内容不能为空', 'danger')
+            return redirect(url_for('admin.announcement_edit', announcement_id=announcement_id))
+        
+        announcement.title = title
+        announcement.content = content
+        announcement.is_published = is_published
+        announcement.sort_order = sort_order
+        db.session.commit()
+        
+        flash('公告更新成功', 'success')
+        return redirect(url_for('admin.announcements'))
+    
+    return render_template('admin/admin_announcement_form.html', announcement=announcement)
+
+
+@bp.route('/api/announcements/<int:announcement_id>', methods=['DELETE'])
+@login_required
+@admin_required
+@permission_required('config_manage')
+def api_delete_announcement(announcement_id):
+    """删除公告API"""
+    announcement = Announcement.query.get_or_404(announcement_id)
+    
+    db.session.delete(announcement)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': '公告删除成功'
+    })

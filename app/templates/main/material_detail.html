@@ -9,8 +9,8 @@
         </svg>
     </a>
     <h1 class="text-lg font-black text-gray-900">素材详情</h1>
-    <button onclick="toggleAction('collect')" id="collect-btn" class="back-button">
-        <svg class="w-6 h-6 text-gray-400" id="collect-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <button onclick="toggleFavorite()" id="collect-btn" class="back-button">
+        <svg class="w-6 h-6 {% if is_favorited %}text-red-500{% else %}text-gray-400{% endif %}" id="collect-icon" fill="{% if is_favorited %}currentColor{% else %}none{% endif %}" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
         </svg>
     </button>
@@ -618,21 +618,40 @@
     });
 
     // 收藏交互
-    function toggleAction(type) {
+    async function toggleFavorite() {
+        const materialId = {{ material.id }};
         const btn = document.getElementById('collect-btn');
         const icon = document.getElementById('collect-icon');
-        const isActive = btn.classList.contains('bg-orange-500');
-
-        if (!isActive) {
-            btn.classList.replace('bg-white', 'bg-orange-500');
-            btn.classList.add('text-white');
-            icon.setAttribute('fill', 'currentColor');
-            icon.classList.replace('text-gray-400', 'text-white');
-        } else {
-            btn.classList.replace('bg-orange-500', 'bg-white');
-            btn.classList.remove('text-white');
-            icon.setAttribute('fill', 'none');
-            icon.classList.replace('text-white', 'text-gray-400');
+        
+        try {
+            const response = await fetch(`/api/material/${materialId}/favorite`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                if (result.is_favorited) {
+                    icon.classList.remove('text-gray-400');
+                    icon.classList.add('text-red-500');
+                    icon.setAttribute('fill', 'currentColor');
+                } else {
+                    icon.classList.remove('text-red-500');
+                    icon.classList.add('text-gray-400');
+                    icon.setAttribute('fill', 'none');
+                }
+                
+                setStatusText(result.message, 'green');
+                setTimeout(() => setStatusText('生成结果将自动保存至作品库', 'gray'), 2000);
+            } else {
+                setStatusText(result.message, 'red');
+            }
+        } catch (error) {
+            console.error('收藏操作失败:', error);
+            setStatusText('操作失败，请重试', 'red');
         }
     }
 </script>

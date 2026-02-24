@@ -25,9 +25,9 @@ def update_material_stats():
         print(f'找到 {len(materials)} 个素材')
         
         for material in materials:
-            material.view_count = random.randint(0, 100000)
-            material.favorite_count = random.randint(0, 100000)
-            material.download_count = random.randint(0, 100000)
+            material.view_count = random.randint(0, 10000)
+            material.favorite_count = random.randint(0, 5000)
+            material.download_count = random.randint(0, 5000)
             
             print(f'素材 #{material.id} - {material.title}: 浏览={material.view_count}, 收藏={material.favorite_count}, 下载={material.download_count}')
         
@@ -35,7 +35,7 @@ def update_material_stats():
         db.session.commit()
         
         print(f'\n✅ 成功更新了 {len(materials)} 个素材的统计数据')
-        print(f'   随机区间：0 - 100000')
+        print(f'   随机区间：0 - 5000 - 10000')
 
 if __name__ == '__main__':
     update_material_stats()

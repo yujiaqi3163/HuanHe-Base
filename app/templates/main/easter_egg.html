@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>粒子 - 动态粒子交互</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        
+        canvas { 
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: block; 
+            touch-action: none; 
+            z-index: 1;
+        }
+        
+        .menu-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            width: 44px;
+            height: 44px;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .menu-btn:active {
+            transform: scale(0.9);
+            background: rgba(40, 40, 40, 0.9);
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .menu-btn span {
+            display: block;
+            width: 20px;
+            height: 2px;
+            background: white;
+            margin: 3px 0;
+            border-radius: 1px;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 9999;
+            width: 44px;
+            height: 44px;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        .back-btn:active {
+            transform: scale(0.9);
+            background: rgba(40, 40, 40, 0.9);
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 280px;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(20px);
+            border-right: 2px solid rgba(255, 255, 255, 0.2);
+            z-index: 8888;
+            transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+        }
+
+        .sidebar.open {
+            left: 0;
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 7777;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .effect-item {
+            padding: 16px 20px;
+            margin: 10px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .effect-item:active {
+            transform: scale(0.96);
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .effect-item.active {
+            background: rgba(129, 140, 248, 0.3);
+            border-color: rgba(129, 140, 248, 0.8);
+        }
+
+        .effect-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .effect-desc {
+            font-size: 12px;
+            opacity: 0.75;
+        }
+
+        .sidebar-title {
+            padding: 28px 20px 18px;
+            font-size: 19px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.15);
+            margin: 0 16px 10px;
+        }
+
+        .current-effect-indicator {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 6666;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 12px 28px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .color-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="main-canvas"></canvas>
+
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-title">粒子效果</div>
+        <div class="sidebar-divider"></div>
+        
+        <div class="effect-item active" data-effect="rainbow">
+            <span class="color-dot" style="background: linear-gradient(45deg, #818cf8, #ec4899);"></span>
+            <div class="effect-title">彩虹星云</div>
+            <div class="effect-desc">单指跟随 · 双指旋涡 · 多指爆发</div>
+        </div>
+        
+        <div class="effect-item" data-effect="quantum">
+            <span class="color-dot" style="background: #00f2ff;"></span>
+            <div class="effect-title">量子流体</div>
+            <div class="effect-desc">连线引力 · 量子共振 · 超新星爆发</div>
+        </div>
+        
+        <div class="effect-item" data-effect="firework">
+            <span class="color-dot" style="background: #f59e0b;"></span>
+            <div class="effect-title">烟花绽放</div>
+            <div class="effect-desc">点击爆炸 · 五彩斑斓</div>
+        </div>
+        
+        <div class="effect-item" data-effect="matrix">
+            <span class="color-dot" style="background: #10b981;"></span>
+            <div class="effect-title">矩阵雨</div>
+            <div class="effect-desc">数字下落 · 科技感</div>
+        </div>
+    </div>
+
+    <button id="menu-btn" class="menu-btn">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
+    <button class="back-btn" onclick="window.history.back()">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+    </button>
+
+    <div id="current-effect-indicator" class="current-effect-indicator">
+        彩虹星云
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('main-canvas');
+            const ctx = canvas.getContext('2d');
+            const menuBtn = document.getElementById('menu-btn');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebar-overlay');
+            const currentEffectIndicator = document.getElementById('current-effect-indicator');
+            const effectItems = document.querySelectorAll('.effect-item');
+
+            let width, height;
+            let particles = [];
+            let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            let currentEffect = 'rainbow';
+            let animationId = null;
+
+            let sysState = {
+                touches: {},
+                activeTouchCount: 0,
+                centerX: 0,
+                centerY: 0,
+                rotation: 0,
+                hue: 190
+            };
+
+            const touchColors = [
+                'rgba(129, 140, 248, 0.6)',
+                'rgba(236, 72, 153, 0.6)',
+                'rgba(34, 197, 94, 0.6)',
+                'rgba(251, 191, 36, 0.6)',
+                'rgba(239, 68, 68, 0.6)'
+            ];
+
+            function resize() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+
+            function toggleSidebar() {
+                sidebar.classList.toggle('open');
+                sidebarOverlay.classList.toggle('visible');
+            }
+
+            menuBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleSidebar();
+            });
+            sidebarOverlay.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleSidebar();
+            });
+
+            effectItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const effect = item.dataset.effect;
+                    if (effect !== currentEffect) {
+                        changeEffect(effect);
+                    }
+                    toggleSidebar();
+                });
+            });
+
+            function changeEffect(effect) {
+                currentEffect = effect;
+                
+                effectItems.forEach(item => {
+                    item.classList.remove('active');
+                    if (item.dataset.effect === effect) {
+                        item.classList.add('active');
+                    }
+                });
+
+                const effectNames = {
+                    rainbow: '彩虹星云',
+                    quantum: '量子流体',
+                    firework: '烟花绽放',
+                    matrix: '矩阵雨'
+                };
+                currentEffectIndicator.textContent = effectNames[effect];
+
+                initParticles();
+            }
+
+            class RainbowParticle {
+                constructor(index) {
+                    this.index = index;
+                    this.init();
+                }
+                init() {
+                    this.x = Math.random() * width;
+                    this.y = Math.random() * height;
+                    this.vx = 0;
+                    this.vy = 0;
+                    this.radius = Math.random() * (isMobile ? 1.2 : 2.2) + 0.5;
+                    this.baseHue = 200 + Math.random() * 60;
+                    this.hue = this.baseHue;
+                    this.alpha = 0.3 + Math.random() * 0.5;
+                    this.noiseScale = 0.001 + Math.random() * 0.002;
+                    this.noiseOffset = Math.random() * 1000;
+                    this.followSpeed = 0.02 + Math.random() * 0.04;
+                    this.followRadius = 30 + Math.random() * 80;
+                    this.followAngle = Math.random() * Math.PI * 2;
+                    this.originX = Math.random() * width;
+                    this.originY = Math.random() * height;
+                }
+                update() {
+                    const touchCount = sysState.activeTouchCount;
+                    if (touchCount === 1) {
+                        const touch = Object.values(sysState.touches)[0];
+                        if (touch) {
+                            const tx = touch.x + Math.cos(this.followAngle + Date.now() * 0.001) * this.followRadius;
+                            const ty = touch.y + Math.sin(this.followAngle + Date.now() * 0.001) * this.followRadius;
+                            this.vx += (tx - this.x) * this.followSpeed * 1.5;
+                            this.vy += (ty - this.y) * this.followSpeed * 1.5;
+                            this.hue = this.baseHue + Math.sin(Date.now() * 0.002 + this.index * 0.1) * 30;
+                        }
+                    } else if (touchCount === 2) {
+                        const cx = sysState.centerX;
+                        const cy = sysState.centerY;
+                        const dx = this.x - cx;
+                        const dy = this.y - cy;
+                        const dist = Math.hypot(dx, dy);
+                        const angle = Math.atan2(dy, dx) + sysState.rotation * 0.005;
+                        const orbitRadius = Math.min(dist * 0.8, 250);
+                        const targetX = cx + Math.cos(angle) * orbitRadius;
+                        const targetY = cy + Math.sin(angle) * orbitRadius;
+                        this.vx += (targetX - this.x) * 0.025;
+                        this.vy += (targetY - this.y) * 0.025;
+                        this.hue = (angle * 30) + Date.now() * 0.05;
+                    } else if (touchCount >= 3) {
+                        const cx = sysState.centerX;
+                        const cy = sysState.centerY;
+                        const dx = this.x - cx;
+                        const dy = this.y - cy;
+                        const dist = Math.hypot(dx, dy);
+                        const angle = Math.atan2(dy, dx);
+                        const force = Math.min(touchCount * 15, 80) / (dist + 50);
+                        this.vx += Math.cos(angle) * force * 3;
+                        this.vy += Math.sin(angle) * force * 3;
+                        this.hue = 320 + Math.sin(dist * 0.02 + Date.now() * 0.003) * 40;
+                    } else {
+                        this.vx += (this.originX - this.x) * 0.0002;
+                        this.vy += (this.originY - this.y) * 0.0002;
+                        this.vx += Math.sin(Date.now() * this.noiseScale + this.noiseOffset) * 0.15;
+                        this.vy += Math.cos(Date.now() * this.noiseScale + this.noiseOffset) * 0.15;
+                        this.hue = this.baseHue + Math.sin(Date.now() * 0.0005 + this.index) * 20;
+                    }
+                    this.vx *= 0.94;
+                    this.vy *= 0.94;
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    if (this.x < -50) this.x = width + 50;
+                    if (this.x > width + 50) this.x = -50;
+                    if (this.y < -50) this.y = height + 50;
+                    if (this.y > height + 50) this.y = -50;
+                }
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${this.hue}, 85%, 75%, ${this.alpha})`;
+                    ctx.fill();
+                }
+            }
+
+            class QuantumParticle {
+                constructor(id) {
+                    this.id = id;
+                    this.init();
+                }
+                init() {
+                    this.x = Math.random() * width;
+                    this.y = Math.random() * height;
+                    this.vx = 0;
+                    this.vy = 0;
+                    this.friction = 0.92;
+                    this.radius = Math.random() * 1.5 + 0.5;
+                    this.alpha = Math.random() * 0.4 + 0.2;
+                    this.ox = Math.random() * width;
+                    this.oy = Math.random() * height;
+                }
+                update() {
+                    const touches = Object.values(sysState.touches);
+                    const count = touches.length;
+
+                    if (count > 0) {
+                        touches.forEach((t, idx) => {
+                            const dx = t.x - this.x;
+                            const dy = t.y - this.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            
+                            if (count === 1) {
+                                const force = Math.min(2.0, 500 / (dist * dist + 100));
+                                this.vx += dx * force * 0.1;
+                                this.vy += dy * force * 0.1;
+                            } else if (count === 2) {
+                                const angle = Math.atan2(dy, dx);
+                                const orbitX = t.x + Math.cos(angle + 0.5) * 100;
+                                const orbitY = t.y + Math.sin(angle + 0.5) * 100;
+                                this.vx += (orbitX - this.x) * 0.05;
+                                this.vy += (orbitY - this.y) * 0.05;
+                            } else {
+                                const force = -Math.min(5, 1000 / (dist + 20));
+                                this.vx += dx * force * 0.05;
+                                this.vy += dy * force * 0.05;
+                            }
+                        });
+                    } else {
+                        this.vx += (this.ox - this.x) * 0.005;
+                        this.vy += (this.oy - this.y) * 0.005;
+                        this.vx += (Math.random() - 0.5) * 0.2;
+                        this.vy += (Math.random() - 0.5) * 0.2;
+                    }
+
+                    this.vx *= this.friction;
+                    this.vy *= this.friction;
+                    this.x += this.vx;
+                    this.y += this.vy;
+
+                    if (this.x < 0) this.x = width;
+                    if (this.x > width) this.x = 0;
+                    if (this.y < 0) this.y = height;
+                    if (this.y > height) this.y = 0;
+                }
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${sysState.hue + (this.vx * 10)}, 80%, 70%, ${this.alpha})`;
+                    ctx.fill();
+                }
+            }
+
+            class FireworkParticle {
+                constructor(x, y, isExplosion = false) {
+                    this.x = x || Math.random() * width;
+                    this.y = y || height;
+                    this.isExplosion = isExplosion;
+                    this.vx = isExplosion ? (Math.random() - 0.5) * 10 : (Math.random() - 0.5) * 0.5;
+                    this.vy = isExplosion ? (Math.random() - 0.5) * 10 : -Math.random() * 3 - 2;
+                    this.alpha = 1;
+                    this.decay = isExplosion ? 0.02 : 0.001;
+                    this.hue = isExplosion ? Math.random() * 360 : 40 + Math.random() * 20;
+                    this.radius = isExplosion ? Math.random() * 3 + 1 : Math.random() * 2 + 1;
+                    this.gravity = isExplosion ? 0.05 : 0;
+                    this.friction = 0.98;
+                }
+                update() {
+                    this.vx *= this.friction;
+                    this.vy *= this.friction;
+                    this.vy += this.gravity;
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.alpha -= this.decay;
+                }
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${this.hue}, 100%, 60%, ${this.alpha})`;
+                    ctx.fill();
+                }
+            }
+
+            class MatrixParticle {
+                constructor() {
+                    this.x = Math.random() * width;
+                    this.y = Math.random() * height - height;
+                    this.baseSpeed = Math.random() * 5 + 2;
+                    this.speed = this.baseSpeed;
+                    this.char = String.fromCharCode(0x30A0 + Math.random() * 96);
+                    this.baseHue = 120 + Math.random() * 40;
+                    this.hue = this.baseHue;
+                    this.fontSize = Math.random() * 14 + 10;
+                    this.baseAlpha = Math.random() * 0.5 + 0.5;
+                    this.alpha = this.baseAlpha;
+                    this.targetX = this.x;
+                    this.attraction = 0;
+                }
+                update() {
+                    const touches = Object.values(sysState.touches);
+                    let closestDist = Infinity;
+                    let closestTouch = null;
+                    
+                    touches.forEach(touch => {
+                        const dx = touch.x - this.x;
+                        const dy = touch.y - this.y;
+                        const dist = Math.hypot(dx, dy);
+                        if (dist < closestDist) {
+                            closestDist = dist;
+                            closestTouch = touch;
+                        }
+                    });
+                    
+                    if (closestTouch && closestDist < 250) {
+                        const influence = 1 - closestDist / 250;
+                        
+                        this.hue = 350 - influence * 130;
+                        this.alpha = this.baseAlpha + influence * 0.5;
+                        this.speed = this.baseSpeed * (1 + influence * 2);
+                        
+                        const dx = closestTouch.x - this.x;
+                        const dy = closestTouch.y - this.y;
+                        this.attraction = influence * 3;
+                        this.x += dx * 0.02 * this.attraction;
+                        this.y += dy * 0.01 * this.attraction;
+                        
+                        if (Math.random() > 0.85) {
+                            this.char = String.fromCharCode(0x30A0 + Math.random() * 96);
+                        }
+                    } else {
+                        this.hue = this.baseHue;
+                        this.alpha = this.baseAlpha;
+                        this.speed = this.baseSpeed;
+                        this.attraction = 0;
+                    }
+                    
+                    this.y += this.speed;
+                    if (this.y > height) {
+                        this.y = -20;
+                        this.x = Math.random() * width;
+                        this.char = String.fromCharCode(0x30A0 + Math.random() * 96);
+                    }
+                    if (Math.random() > 0.99) {
+                        this.char = String.fromCharCode(0x30A0 + Math.random() * 96);
+                    }
+                }
+                draw() {
+                    ctx.font = this.fontSize + 'px monospace';
+                    ctx.fillStyle = `hsla(${this.hue}, 100%, 60%, ${this.alpha})`;
+                    ctx.fillText(this.char, this.x, this.y);
+                }
+            }
+
+            let fireworkParticles = [];
+            let matrixParticles = [];
+
+            function initParticles() {
+                particles = [];
+                fireworkParticles = [];
+                matrixParticles = [];
+
+                if (currentEffect === 'rainbow') {
+                    const count = isMobile ? 350 : 900;
+                    for (let i = 0; i < count; i++) {
+                        particles.push(new RainbowParticle(i));
+                    }
+                } else if (currentEffect === 'quantum') {
+                    const count = isMobile ? 400 : 1200;
+                    for (let i = 0; i < count; i++) {
+                        particles.push(new QuantumParticle(i));
+                    }
+                } else if (currentEffect === 'firework') {
+                    for (let i = 0; i < 5; i++) {
+                        fireworkParticles.push(new FireworkParticle());
+                    }
+                } else if (currentEffect === 'matrix') {
+                    const count = isMobile ? 80 : 150;
+                    for (let i = 0; i < count; i++) {
+                        matrixParticles.push(new MatrixParticle());
+                    }
+                }
+            }
+
+            function getTouchCenter() {
+                const touches = Object.values(sysState.touches);
+                if (touches.length === 0) return { x: 0, y: 0 };
+                const sumX = touches.reduce((acc, t) => acc + t.x, 0);
+                const sumY = touches.reduce((acc, t) => acc + t.y, 0);
+                return { x: sumX / touches.length, y: sumY / touches.length };
+            }
+
+            function updateQuantumSystem() {
+                const count = Object.keys(sysState.touches).length;
+                sysState.activeTouchCount = count;
+                
+                if (count === 0) {
+                    sysState.hue = 190;
+                } else if (count === 1) {
+                    sysState.hue = 220;
+                } else if (count === 2) {
+                    sysState.hue = 320;
+                } else {
+                    sysState.hue = 40;
+                }
+            }
+
+            function handleInput(id, x, y, isEnd = false) {
+                if (isEnd) {
+                    delete sysState.touches[id];
+                } else {
+                    sysState.touches[id] = { x, y };
+                    
+                    if (currentEffect === 'firework' && !isEnd) {
+                        for (let i = 0; i < 80; i++) {
+                            fireworkParticles.push(new FireworkParticle(x, y, true));
+                        }
+                    }
+                }
+                sysState.activeTouchCount = Object.keys(sysState.touches).length;
+                
+                const center = getTouchCenter();
+                sysState.centerX = center.x;
+                sysState.centerY = center.y;
+                sysState.rotation += 1;
+                
+                if (currentEffect === 'quantum') {
+                    updateQuantumSystem();
+                }
+            }
+
+            window.addEventListener('mousedown', e => {
+                handleInput('mouse', e.clientX, e.clientY);
+            });
+            window.addEventListener('mousemove', e => {
+                if (sysState.touches['mouse']) handleInput('mouse', e.clientX, e.clientY);
+            });
+            window.addEventListener('mouseup', () => handleInput('mouse', null, null, true));
+
+            window.addEventListener('touchstart', e => {
+                for (let t of e.changedTouches) handleInput(t.identifier, t.clientX, t.clientY);
+            }, { passive: true });
+            window.addEventListener('touchmove', e => {
+                for (let t of e.changedTouches) handleInput(t.identifier, t.clientX, t.clientY);
+            }, { passive: true });
+            window.addEventListener('touchend', e => {
+                for (let t of e.changedTouches) handleInput(t.identifier, null, null, true);
+            });
+
+            function drawQuantumConnections() {
+                const touches = Object.values(sysState.touches);
+                if (touches.length === 0) return;
+
+                ctx.lineWidth = 0.5;
+                for (let i = 0; i < particles.length; i += 4) {
+                    const p = particles[i];
+                    touches.forEach(t => {
+                        const dx = t.x - p.x;
+                        const dy = t.y - p.y;
+                        const dist = dx * dx + dy * dy;
+                        if (dist < 6400) {
+                            ctx.beginPath();
+                            ctx.moveTo(p.x, p.y);
+                            ctx.lineTo(t.x, t.y);
+                            const opacity = 1 - (Math.sqrt(dist) / 80);
+                            ctx.strokeStyle = `hsla(${sysState.hue}, 100%, 70%, ${opacity * 0.3})`;
+                            ctx.stroke();
+                        }
+                    });
+                }
+            }
+
+            function animate() {
+                if (currentEffect === 'rainbow') {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+                    ctx.fillRect(0, 0, width, height);
+                    
+                    particles.forEach(p => { p.update(); p.draw(); });
+                    
+                    if (sysState.activeTouchCount >= 1) {
+                        const touches = Object.values(sysState.touches);
+                        touches.forEach((touch, index) => {
+                            const gradient = ctx.createRadialGradient(touch.x, touch.y, 0, touch.x, touch.y, 100);
+                            gradient.addColorStop(0, touchColors[index % touchColors.length].replace('0.6', '0.3'));
+                            gradient.addColorStop(1, 'transparent');
+                            ctx.fillStyle = gradient;
+                            ctx.beginPath();
+                            ctx.arc(touch.x, touch.y, 100, 0, Math.PI * 2);
+                            ctx.fill();
+                        });
+                    }
+                } else if (currentEffect === 'quantum') {
+                    ctx.fillStyle = 'rgba(5, 5, 5, 0.2)';
+                    ctx.fillRect(0, 0, width, height);
+                    
+                    particles.forEach(p => { p.update(); p.draw(); });
+
+                    drawQuantumConnections();
+                    
+                    Object.values(sysState.touches).forEach(t => {
+                        const g = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, 150);
+                        g.addColorStop(0, `hsla(${sysState.hue}, 100%, 60%, 0.15)`);
+                        g.addColorStop(1, 'transparent');
+                        ctx.fillStyle = g;
+                        ctx.beginPath();
+                        ctx.arc(t.x, t.y, 150, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                } else if (currentEffect === 'firework') {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+                    ctx.fillRect(0, 0, width, height);
+                    
+                    if (Math.random() > 0.98) {
+                        fireworkParticles.push(new FireworkParticle());
+                    }
+                    
+                    fireworkParticles = fireworkParticles.filter(p => p.alpha > 0);
+                    fireworkParticles.forEach(p => { p.update(); p.draw(); });
+                } else if (currentEffect === 'matrix') {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                    ctx.fillRect(0, 0, width, height);
+                    
+                    matrixParticles.forEach(p => { p.update(); p.draw(); });
+                    
+                    if (sysState.activeTouchCount >= 1) {
+                        const touches = Object.values(sysState.touches);
+                        touches.forEach((touch, index) => {
+                            const gradient = ctx.createRadialGradient(touch.x, touch.y, 0, touch.x, touch.y, 250);
+                            gradient.addColorStop(0, 'rgba(255, 50, 50, 0.25)');
+                            gradient.addColorStop(0.4, 'rgba(255, 100, 50, 0.1)');
+                            gradient.addColorStop(1, 'transparent');
+                            ctx.fillStyle = gradient;
+                            ctx.beginPath();
+                            ctx.arc(touch.x, touch.y, 250, 0, Math.PI * 2);
+                            ctx.fill();
+                        });
+                    }
+                }
+
+                animationId = requestAnimationFrame(animate);
+            }
+
+            function init() {
+                resize();
+                initParticles();
+                animate();
+            }
+
+            init();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+{% extends "admin/admin_base.html" %}
+
+{% block admin_content %}
+<div class="px-4 py-6 space-y-6">
+    
+    <!-- 操作工具栏 -->
+    <div class="flex gap-2 overflow-x-auto no-scrollbar py-1">
+        <a href="{{ url_for('admin.announcement_add') }}" class="flex-shrink-0 px-5 py-2.5 bg-gray-900 text-white rounded-2xl text-sm font-bold shadow-sm flex items-center gap-2 active:scale-95 transition-transform">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            添加公告
+        </a>
+    </div>
+
+    <!-- 公告列表 -->
+    <section class="space-y-3">
+        {% if announcements %}
+            {% for announcement in announcements %}
+            <div class="bg-white rounded-2xl border border-gray-100 p-4 transition-all hover:shadow-md">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <h4 class="text-sm font-bold text-gray-800 truncate">{{ announcement.title }}</h4>
+                            {% if announcement.is_published %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+                                已发布
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500">
+                                草稿
+                            </span>
+                            {% endif %}
+                        </div>
+                        <p class="text-xs text-gray-500 mb-2">
+                            {{ announcement.created_at.strftime('%Y-%m-%d %H:%M') }} · 
+                            排序: {{ announcement.sort_order }}
+                        </p>
+                        <div class="text-xs text-gray-600 line-clamp-2">
+                            {{ announcement.content|striptags|truncate(100) }}
+                        </div>
+                    </div>
+                    <div class="flex gap-1">
+                        <a href="{{ url_for('admin.announcement_edit', announcement_id=announcement.id) }}" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center active:scale-90 transition-transform">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </a>
+                        <button onclick="deleteAnnouncement({{ announcement.id }})" class="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center active:scale-90 transition-transform">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+            <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.999 3.999 0 00-1.564.317z" />
+            </svg>
+            <p class="text-sm text-gray-500">暂无公告</p>
+            <p class="text-xs text-gray-400 mt-1">点击上方按钮添加第一条公告</p>
+        </div>
+        {% endif %}
+    </section>
+
+</div>
+
+<script>
+async function deleteAnnouncement(announcementId) {
+    if (!confirm('确定要删除这条公告吗？')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/api/announcements/${announcementId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('删除成功！');
+            window.location.reload();
+        } else {
+            alert('删除失败：' + (result.message || '未知错误'));
+        }
+    } catch (error) {
+        console.error('删除失败:', error);
+        alert('删除失败，请重试');
+    }
+}
+</script>
+{% endblock %}

@@ -11,7 +11,7 @@
 
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, current_app  # 导入Flask相关模块
 from flask_login import login_required, current_user  # 导入登录相关模块
-from app.models import User, RegisterSecret, Material, UserMaterial, UserMaterialImage  # 导入数据模型
+from app.models import User, RegisterSecret, Material, UserMaterial, UserMaterialImage, UserFavorite, UserDownload, Announcement  # 导入数据模型
 from app import db  # 导入数据库
 from app.decorators import device_required  # 导入设备锁装饰器
 from app.utils.logger import get_logger  # 导入日志模块
@@ -190,6 +190,12 @@ def profile():
     from datetime import datetime
     now = datetime.utcnow()
     
+    from app.models import UserMaterial, UserFavorite
+    
+    # 统计数据
+    my_materials_count = UserMaterial.query.filter_by(user_id=current_user.id).count()
+    favorite_materials_count = UserFavorite.query.filter_by(user_id=current_user.id).count()
+    
     # 简单的卡密获取，先确保页面能打开
     user_secret = None
     secrets_list = None
@@ -255,7 +261,9 @@ def profile():
                            status_text=status_text,
                            status_color=status_color,
                            status_badge=status_badge,
-                           is_expired=is_expired)  # 渲染个人中心模板
+                           is_expired=is_expired,
+                           my_materials_count=my_materials_count,
+                           favorite_materials_count=favorite_materials_count)  # 渲染个人中心模板
 
 
 @bp.route('/security-center')
@@ -263,6 +271,19 @@ def profile():
 def security_center():
     """安全中心页面"""
     return render_template('main/security_center.html')
+
+
+@bp.route('/about')
+def about():
+    """关于 幻核矩阵 页面"""
+    return render_template('main/about.html')
+
+
+@bp.route('/easter-egg')
+@login_required
+def easter_egg():
+    """彩蛋页面 - 粒子互动特效"""
+    return render_template('main/easter_egg.html')
 
 
 @bp.route('/security-secret')
@@ -725,12 +746,45 @@ def api_get_latest_materials():
 @login_required
 def my_materials():
     """我的作品库页面"""
-    # 查询用户的二创素材，按创建时间倒序
+    active_tab = request.args.get('active_tab', 'my')
+    
+    # 查询用户的二创素材（我的素材），按创建时间倒序
     user_materials = UserMaterial.query.filter_by(
         user_id=current_user.id
     ).order_by(UserMaterial.created_at.desc()).all()
     
-    return render_template('main/my_materials.html', user_materials=user_materials)
+    # 查询用户收藏的素材，按创建时间倒序
+    favorites = UserFavorite.query.filter_by(
+        user_id=current_user.id
+    ).order_by(UserFavorite.created_at.desc()).all()
+    favorite_materials = [fav.material for fav in favorites]
+    
+    # 查询用户下载的素材（包括原始素材和用户二创素材），按创建时间倒序
+    downloads = UserDownload.query.filter_by(
+        user_id=current_user.id
+    ).order_by(UserDownload.created_at.desc()).all()
+    
+    # 整理下载素材列表
+    download_items = []
+    for download in downloads:
+        if download.material:
+            download_items.append({
+                'type': 'material',
+                'item': download.material,
+                'created_at': download.created_at
+            })
+        elif download.user_material:
+            download_items.append({
+                'type': 'user_material',
+                'item': download.user_material,
+                'created_at': download.created_at
+            })
+    
+    return render_template('main/my_materials.html', 
+                           user_materials=user_materials,
+                           favorite_materials=favorite_materials,
+                           download_items=download_items,
+                           active_tab=active_tab)
 
 
 @bp.route('/my-material/<int:user_material_id>')
@@ -967,6 +1021,15 @@ def material_detail(material_id):
     # 获取客服微信
     customer_service_wechat = Config.get_value('customer_service_wechat', 'your_kefu_wechat')
     
+    # 检查用户是否已收藏该素材
+    is_favorited = False
+    favorite = UserFavorite.query.filter_by(
+        user_id=current_user.id,
+        material_id=material_id
+    ).first()
+    if favorite:
+        is_favorited = True
+    
     # 增加浏览量
     material.view_count += 1
     db.session.commit()
@@ -974,7 +1037,8 @@ def material_detail(material_id):
     return render_template('main/material_detail.html', 
                            material=material,
                            is_membership_valid=is_membership_valid,
-                           customer_service_wechat=customer_service_wechat)
+                           customer_service_wechat=customer_service_wechat,
+                           is_favorited=is_favorited)
 
 
 @bp.route('/api/material/<int:material_id>/remix', methods=['POST'])
@@ -1093,4 +1157,123 @@ def api_update_user_material_image(user_material_id):
         return jsonify({
             'success': False,
             'message': f'更新失败: {str(e)}'
+        }), 500
+
+
+@bp.route('/api/material/<int:material_id>/favorite', methods=['POST'])
+@login_required
+def api_toggle_favorite(material_id):
+    """收藏/取消收藏素材"""
+    try:
+        material = Material.query.filter_by(id=material_id, is_published=True).first_or_404()
+        
+        existing_favorite = UserFavorite.query.filter_by(
+            user_id=current_user.id,
+            material_id=material_id
+        ).first()
+        
+        if existing_favorite:
+            db.session.delete(existing_favorite)
+            material.favorite_count = max(0, material.favorite_count - 1)
+            is_favorited = False
+            message = '已取消收藏'
+        else:
+            favorite = UserFavorite(
+                user_id=current_user.id,
+                material_id=material_id
+            )
+            db.session.add(favorite)
+            material.favorite_count += 1
+            is_favorited = True
+            message = '收藏成功'
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': message,
+            'is_favorited': is_favorited,
+            'favorite_count': material.favorite_count
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'收藏操作失败: {str(e)}', exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': f'操作失败: {str(e)}'
+        }), 500
+
+
+@bp.route('/api/material/<int:material_id>/download', methods=['POST'])
+@login_required
+def api_download_material(material_id):
+    """下载素材并记录"""
+    try:
+        material = Material.query.filter_by(id=material_id, is_published=True).first_or_404()
+        
+        existing_download = UserDownload.query.filter_by(
+            user_id=current_user.id,
+            material_id=material_id
+        ).first()
+        
+        if not existing_download:
+            download = UserDownload(
+                user_id=current_user.id,
+                material_id=material_id
+            )
+            db.session.add(download)
+            material.download_count += 1
+            db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': '下载成功',
+            'download_count': material.download_count
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'下载素材失败: {str(e)}', exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': f'下载失败: {str(e)}'
+        }), 500
+
+
+@bp.route('/api/user-material/<int:user_material_id>/save-to-download', methods=['POST'])
+@login_required
+def api_save_user_material_to_download(user_material_id):
+    """将我的素材保存到下载列表"""
+    try:
+        user_material = UserMaterial.query.filter_by(
+            id=user_material_id,
+            user_id=current_user.id
+        ).first_or_404()
+        
+        existing_download = UserDownload.query.filter_by(
+            user_id=current_user.id,
+            user_material_id=user_material_id
+        ).first()
+        
+        if not existing_download:
+            download = UserDownload(
+                user_id=current_user.id,
+                user_material_id=user_material_id
+            )
+            db.session.add(download)
+            user_material.download_count += 1
+            db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': '已保存到下载列表'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'保存到下载列表失败: {str(e)}', exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': f'保存失败: {str(e)}'
         }), 500

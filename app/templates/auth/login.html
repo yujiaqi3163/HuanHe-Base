@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- 移动端视口配置：禁止缩放，适配移动设备 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>登录 - 爆流分发矩阵系统</title>
+    <title>登录 - 幻核矩阵</title>
     <!-- 自定义样式 -->
     <style>
         .bg-glow {
@@ -19,10 +19,10 @@
     </style>
 </head>
 <!-- 页面主体 -->
-<body class="bg-glow antialiased text-gray-900 font-sans h-screen overflow-hidden">
+<body class="bg-glow antialiased text-gray-900 font-sans min-h-screen overflow-y-auto">
 
-    <!-- 页面主容器：垂直居中布局 -->
-    <div class="h-full flex flex-col items-center justify-center px-6">
+    <!-- 页面主容器：允许滚动 -->
+    <div class="min-h-full flex flex-col items-center py-6 px-6">
         
         <!-- 内容容器：限制最大宽度 -->
         <div class="w-full max-w-[380px] mx-auto flex flex-col">
@@ -42,8 +42,20 @@
             </div>
 
             <header class="text-center mb-6">
-                <h1 class="text-2xl font-black tracking-tighter text-blue-600 mb-1">
-                    爆流分发矩阵系统
+                <div class="relative w-20 h-20 mx-auto mb-3">
+                    <!-- 装饰光晕背景 -->
+                    <div class="absolute inset-0 bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-500 rounded-[2rem] blur-xl opacity-60"></div>
+                    <div class="absolute inset-1 bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-700 rounded-[1.75rem] shadow-2xl flex items-center justify-center overflow-hidden">
+                        <!-- 内部装饰 -->
+                        <div class="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent"></div>
+                        <div class="absolute w-12 h-12 -top-4 -right-4 bg-white/10 rounded-full blur-lg"></div>
+                        <div class="absolute w-8 h-8 -bottom-2 -left-2 bg-cyan-400/20 rounded-full blur-md"></div>
+                        <!-- Logo -->
+                        <img src="/static/images/logo.png" alt="幻核矩阵" class="w-10 h-10 object-contain relative z-10">
+                    </div>
+                </div>
+                <h1 class="text-2xl font-black tracking-tighter text-gray-900 mb-1">
+                    幻核矩阵
                 </h1>
                 <!-- 欢迎提示条 -->
                 <div class="inline-flex items-center px-3 py-1 bg-blue-50 border border-blue-100 rounded-full">

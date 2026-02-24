@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block header %}
+<!-- 沉浸式顶部导航 -->
+<header class="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-4 py-2 bg-white/60 backdrop-blur-xl border-b border-gray-100/50">
+    <a href="{{ url_for('main.profile') }}" class="back-button">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linecap="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+    </a>
+    <h1 class="text-lg font-black text-gray-900">关于 幻核矩阵</h1>
+    <div class="w-6"></div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pt-16 pb-24">
+    <div class="px-4 py-6 space-y-6">
+        
+        <!-- Logo 和标题 -->
+        <div class="bg-white rounded-3xl p-6 text-center shadow-sm border border-gray-100">
+            <div class="relative w-24 h-24 mx-auto mb-4">
+                <!-- 装饰光晕背景 -->
+                <div class="absolute inset-0 bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-500 rounded-[2.5rem] blur-xl opacity-60"></div>
+                <div class="absolute inset-1 bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-700 rounded-[2rem] shadow-2xl flex items-center justify-center overflow-hidden">
+                    <!-- 内部装饰 -->
+                    <div class="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent"></div>
+                    <div class="absolute w-16 h-16 -top-6 -right-6 bg-white/10 rounded-full blur-xl"></div>
+                    <div class="absolute w-10 h-10 -bottom-4 -left-4 bg-cyan-400/20 rounded-full blur-lg"></div>
+                    <!-- Logo -->
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="幻核矩阵" class="w-12 h-12 object-contain relative z-10">
+                </div>
+            </div>
+            <h1 class="text-2xl font-black text-gray-800 mb-2">幻核矩阵</h1>
+            <p class="text-sm text-gray-500">智能素材创作平台</p>
+        </div>
+
+        <!-- 平台介绍 -->
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <h2 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                平台简介
+            </h2>
+            <p class="text-sm text-gray-600 leading-relaxed">
+                幻核矩阵是一个专注于AI素材创作的智能平台，为您提供高质量的素材浏览、收藏和AI二次创作功能，助您轻松获取心仪的设计素材。
+            </p>
+        </div>
+
+        <!-- 主要功能 -->
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <h2 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                主要功能
+            </h2>
+            <div class="space-y-4">
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-700">海量素材浏览</h3>
+                        <p class="text-xs text-gray-500 mt-1">浏览丰富的高质量素材库，发现心仪的设计素材</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-700">一键收藏</h3>
+                        <p class="text-xs text-gray-500 mt-1">遇到喜欢的素材，一键收藏到您的收藏夹</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-700">高级AI二创</h3>
+                        <p class="text-xs text-gray-500 mt-1">使用AI智能算法进行图生图深度二创，生成专属素材</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-yellow-100 text-yellow-600 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-700">我的作品库</h3>
+                        <p class="text-xs text-gray-500 mt-1">集中管理您生成的素材和收藏的内容</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 使用指南 -->
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <h2 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linecap="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                使用指南
+            </h2>
+            <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                    <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">1</span>
+                    <span class="text-sm text-gray-600">在首页浏览感兴趣的素材</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">2</span>
+                    <span class="text-sm text-gray-600">点击素材查看详情，可收藏喜欢的素材</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">3</span>
+                    <span class="text-sm text-gray-600">点击"高级AI下载"进行AI二创</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">4</span>
+                    <span class="text-sm text-gray-600">在作品库查看您生成和收藏的素材</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 版本信息 -->
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <h2 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                版本信息
+            </h2>
+            <div class="flex justify-between items-center py-2">
+                <span class="text-sm text-gray-600">版本号</span>
+                <span class="text-sm font-bold text-gray-800">v1.0.4</span>
+            </div>
+        </div>
+        
+    </div>
+</div>
+{% endblock %}

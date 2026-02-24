@@ -1,66 +1,26 @@
 {% extends "base.html" %}
 
-{% block header %}
-<!-- 沉浸式顶部导航 -->
-<header class="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-4 py-2 bg-white/60 backdrop-blur-xl border-b border-gray-100/50">
-    <a href="{{ url_for('main.index') }}" class="w-8 h-8 flex items-center justify-center bg-white rounded-xl shadow-sm border border-gray-100 active:scale-90 transition-transform">
-        <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
-        </svg>
-    </a>
-    <h1 class="text-lg font-black text-gray-900">我的作品库</h1>
-    <div class="w-8"></div>
-</header>
-{% endblock %}
-
 {% block content %}
-<style>
-    /* 强制覆盖所有宽度限制 */
-    main {
-        max-width: 100% !important;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-    }
-    /* 隐藏底部导航栏 */
-    nav.fixed.bottom-6 {
-        display: none !important;
-    }
-    /* 移除body的底部padding */
-    body {
-        padding-bottom: 0 !important;
-    }
-    /* 选择状态样式 */
-    .material-card.selected {
-        box-shadow: 0 0 0 2px #3b82f6;
-    }
-    .material-card.selected .checkbox-wrapper {
-        background-color: #dbeafe;
-        border-color: #3b82f6;
-    }
-</style>
-
-<div class="pt-16 pb-8 space-y-6 overflow-x-hidden">
-
-    <!-- 1. 统计信息 -->
-    <div class="px-4">
-        <div class="grid grid-cols-2 gap-4">
-            <div class="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl p-5 text-white shadow-lg shadow-blue-200">
-                <div class="text-3xl font-black" id="total-count">{{ user_materials|length }}</div>
-                <div class="text-sm text-blue-100 font-medium mt-1">素材总数</div>
+<div class="py-4 space-y-6 overflow-x-hidden">
+    
+    <!-- 顶部两个数据看板 -->
+    <div class="px-4 space-y-3">
+        <div class="grid grid-cols-2 gap-2">
+            <div onclick="switchTab('my')" id="tab-my" class="tab-item bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-3 text-center cursor-pointer transition-all duration-300">
+                <div class="text-2xl font-black text-white">{{ user_materials|length }}</div>
+                <div class="text-xs font-bold text-white/80">我的素材</div>
             </div>
-            <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm">
-                <div class="text-3xl font-black text-gray-800">
-                    {{ user_materials|sum(attribute='download_count') }}
-                </div>
-                <div class="text-sm text-gray-400 font-medium mt-1">累计下载</div>
+            <div onclick="switchTab('favorite')" id="tab-favorite" class="tab-item bg-white border-2 border-gray-100 rounded-2xl p-3 text-center cursor-pointer transition-all duration-300">
+                <div class="text-2xl font-black text-gray-800">{{ favorite_materials|length }}</div>
+                <div class="text-xs font-bold text-gray-500">收藏素材</div>
             </div>
         </div>
     </div>
-
-    <!-- 2. 操作按钮区 -->
-    <div class="px-4">
-        <div class="flex items-center justify-between gap-2">
-            <h2 class="text-base font-bold text-gray-800">我的作品</h2>
+    
+    <!-- 我的素材 -->
+    <div id="content-my" class="content-panel px-4">
+        <div class="flex items-center justify-between gap-2 mb-4">
+            <h2 class="text-base font-bold text-gray-800">我的素材</h2>
             <div class="flex items-center gap-2">
                 <button id="delete-all-btn" class="bg-red-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm active:scale-95 transition-transform {% if user_materials|length == 0 %}opacity-50 pointer-events-none{% endif %}" onclick="deleteAllMaterials()">
                     <span class="flex items-center gap-1">
@@ -68,263 +28,247 @@
                         全部删除
                     </span>
                 </button>
-                <button id="batch-delete-btn" class="hidden bg-red-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm active:scale-95 transition-transform" onclick="batchDeleteMaterials()">
-                    <span class="flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1 1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        批量删除 (<span id="selected-count">0</span>)
-                    </span>
-                </button>
             </div>
         </div>
-    </div>
-
-    <!-- 3. 作品列表 -->
-    <div class="px-4 space-y-3" id="materials-container">
-        {% if user_materials|length == 0 %}
-        <!-- 空状态 -->
-        <div class="flex flex-col items-center justify-center py-16 space-y-4" id="empty-state">
-            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-                <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z" />
-                </svg>
+        
+        <!-- 搜索框 -->
+        <div class="relative mb-4">
+            <input type="text" id="search-my" placeholder="搜索我的素材..." 
+                class="w-full bg-white border border-gray-200 rounded-2xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-500/10 outline-none transition-all"
+                oninput="searchMaterials('my')">
+            <div class="absolute left-3.5 top-2.5 text-gray-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             </div>
-            <div class="text-center space-y-1">
-                <p class="text-gray-600 font-medium">还没有素材</p>
-                <p class="text-gray-400 text-sm">去素材库下载素材开始创作吧！</p>
-            </div>
-            <a href="{{ url_for('main.index') }}" class="mt-4 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold rounded-full shadow-lg shadow-blue-200 active:scale-95 transition-transform">
-                去素材库
-            </a>
         </div>
-        {% else %}
-        <!-- 素材网格 -->
-        <div class="grid grid-cols-2 gap-3">
-            {% for user_material in user_materials %}
-            <div class="group material-card" data-id="{{ user_material.id }}">
-                <div class="relative rounded-3xl overflow-hidden aspect-square bg-gray-100 shadow-sm border border-gray-100">
-                    <!-- 复选框 -->
-                    <div class="absolute top-2 left-2 z-10">
-                        <div class="checkbox-wrapper w-6 h-6 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 flex items-center justify-center cursor-pointer" onclick="event.stopPropagation(); toggleMaterial({{ user_material.id }})">
-                            <input type="checkbox" class="material-checkbox w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" data-id="{{ user_material.id }}" onchange="updateSelectedCount()">
+        
+        {% if user_materials|length > 0 %}
+        <div id="grid-my" class="grid grid-cols-2 gap-3">
+            {% for material in user_materials %}
+            <div class="group relative material-card" data-title="{{ material.title|lower }}">
+                <a href="{{ url_for('main.my_material_detail', user_material_id=material.id) }}" class="block bg-white rounded-2xl shadow-sm overflow-hidden active:scale-95 transition-transform">
+                    {% set cover_img = material.images|selectattr('is_cover')|list %}
+                    {% set cover = cover_img[0] if cover_img else (material.images[0] if material.images else None) %}
+                    {% if cover %}
+                    <div class="aspect-square bg-gray-100 overflow-hidden">
+                        <img src="{{ cover.image_url }}" alt="{{ material.title }}" class="w-full h-full object-cover">
+                    </div>
+                    {% else %}
+                    <div class="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                        <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    {% endif %}
+                    <div class="p-3">
+                        <h3 class="text-sm font-bold text-gray-800 truncate">{{ material.title }}</h3>
+                        <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                {{ material.view_count }}
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                </svg>
+                                {{ material.download_count }}
+                            </span>
                         </div>
                     </div>
-                    
-                    <!-- 封面图 -->
-                    <a href="{{ url_for('main.my_material_detail', user_material_id=user_material.id) }}" class="block">
-                        {% set cover_image = user_material.images|selectattr('is_cover')|first %}
-                        {% if cover_image %}
-                        <img src="{{ cover_image.image_url }}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
-                        {% else %}
-                        <div class="absolute inset-0 w-full h-full flex items-center justify-center">
-                            <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                        {% endif %}
-                        
-                        <!-- 图片数量徽章 -->
-                        {% if user_material.images|length > 1 %}
-                        <div class="absolute top-2 right-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-full text-white text-[10px] font-bold">
-                            {{ user_material.images|length }}P
-                        </div>
-                        {% endif %}
-                        
-                        <!-- 渐变遮罩 -->
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                    </a>
-                </div>
-                
-                <!-- 素材信息 -->
-                <div class="mt-2 space-y-1">
-                    <h3 class="text-sm font-bold text-gray-800 line-clamp-1">{{ user_material.title }}</h3>
-                    <div class="flex items-center gap-2 text-[10px] text-gray-400">
-                        <span>{{ user_material.created_at.strftime('%Y-%m-%d') }}</span>
-                        {% if user_material.original_material %}
-                        <span>· 二创自素材</span>
-                        {% endif %}
-                    </div>
-                </div>
+                </a>
             </div>
             {% endfor %}
         </div>
+        {% else %}
+        <div class="text-center py-16">
+            <div class="mx-auto w-20 h-20 bg-gray-100 rounded-3xl flex items-center justify-center mb-4">
+                <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+            </div>
+            <h3 class="text-sm font-bold text-gray-500 mb-1">暂无素材</h3>
+            <p class="text-xs text-gray-400">去主页选择素材进行AI下载吧</p>
+        </div>
         {% endif %}
     </div>
-
+    
+    <!-- 收藏素材 -->
+    <div id="content-favorite" class="content-panel px-4 hidden">
+        <div class="flex items-center justify-between gap-2 mb-4">
+            <h2 class="text-base font-bold text-gray-800">收藏素材</h2>
+        </div>
+        
+        <!-- 搜索框 -->
+        <div class="relative mb-4">
+            <input type="text" id="search-favorite" placeholder="搜索收藏素材..." 
+                class="w-full bg-white border border-gray-200 rounded-2xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-500/10 outline-none transition-all"
+                oninput="searchMaterials('favorite')">
+            <div class="absolute left-3.5 top-2.5 text-gray-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </div>
+        </div>
+        
+        {% if favorite_materials|length > 0 %}
+        <div id="grid-favorite" class="grid grid-cols-2 gap-3">
+            {% for material in favorite_materials %}
+            <div class="group relative material-card" data-title="{{ material.title|lower }}">
+                <a href="{{ url_for('main.material_detail', material_id=material.id) }}" class="block bg-white rounded-2xl shadow-sm overflow-hidden active:scale-95 transition-transform">
+                    {% set cover_img = material.images|selectattr('is_cover')|list %}
+                    {% set cover = cover_img[0] if cover_img else (material.images[0] if material.images else None) %}
+                    {% if cover %}
+                    <div class="aspect-square bg-gray-100 overflow-hidden">
+                        <img src="{{ cover.image_url }}" alt="{{ material.title }}" class="w-full h-full object-cover">
+                    </div>
+                    {% else %}
+                    <div class="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                        <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    {% endif %}
+                    <div class="p-3">
+                        <h3 class="text-sm font-bold text-gray-800 truncate">{{ material.title }}</h3>
+                        <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                {{ material.view_count }}
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                </svg>
+                                {{ material.favorite_count }}
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-16">
+            <div class="mx-auto w-20 h-20 bg-gray-100 rounded-3xl flex items-center justify-center mb-4">
+                <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+            </div>
+            <h3 class="text-sm font-bold text-gray-500 mb-1">暂无收藏</h3>
+            <p class="text-xs text-gray-400">在素材详情页点击爱心收藏</p>
+        </div>
+        {% endif %}
+    </div>
+    
 </div>
 
 <script>
-function updateSelectedCount() {
-    const checkboxes = document.querySelectorAll('.material-checkbox:checked');
-    const count = checkboxes.length;
-    const selectedCountSpan = document.getElementById('selected-count');
-    const batchDeleteBtn = document.getElementById('batch-delete-btn');
+    let currentTab = '{{ active_tab }}' || 'my';
     
-    if (selectedCountSpan) {
-        selectedCountSpan.textContent = count;
-    }
-    
-    if (batchDeleteBtn) {
-        if (count > 0) {
-            batchDeleteBtn.classList.remove('hidden');
-        } else {
-            batchDeleteBtn.classList.add('hidden');
-        }
-    }
-    
-    // 更新选中卡片的样式
-    const allCards = document.querySelectorAll('.material-card');
-    allCards.forEach(card => {
-        const id = card.dataset.id;
-        const checkbox = document.querySelector(`.material-checkbox[data-id="${id}"]`);
-        if (checkbox && checkbox.checked) {
-            card.classList.add('selected');
-        } else {
-            card.classList.remove('selected');
+    window.addEventListener('DOMContentLoaded', function() {
+        if (currentTab === 'favorite') {
+            switchTab('favorite');
         }
     });
-}
-
-function toggleMaterial(id) {
-    const checkbox = document.querySelector(`.material-checkbox[data-id="${id}"]`);
-    if (checkbox) {
-        checkbox.checked = !checkbox.checked;
-        updateSelectedCount();
-    }
-}
-
-function deleteAllMaterials() {
-    const totalCountSpan = document.getElementById('total-count');
-    const totalCount = parseInt(totalCountSpan.textContent);
     
-    if (totalCount === 0) {
-        alert('作品库已经是空的！');
-        return;
-    }
-    
-    if (!confirm(`⚠️ 警告：此操作将清空您的整个作品库！\n\n确定要删除全部 ${totalCount} 个素材吗？\n删除后无法恢复！`)) {
-        return;
-    }
-    
-    fetch('/api/user-materials/delete-all', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const container = document.getElementById('materials-container');
-            container.innerHTML = `
-                <div class="flex flex-col items-center justify-center py-16 space-y-4" id="empty-state">
-                    <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-                        <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z" />
-                        </svg>
-                    </div>
-                    <div class="text-center space-y-1">
-                        <p class="text-gray-600 font-medium">还没有素材</p>
-                        <p class="text-gray-400 text-sm">去素材库下载素材开始创作吧！</p>
-                    </div>
-                    <a href="{{ url_for('main.index') }}" class="mt-4 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold rounded-full shadow-lg shadow-blue-200 active:scale-95 transition-transform">
-                        去素材库
-                    </a>
-                </div>
-            `;
+    function switchTab(tab) {
+        currentTab = tab;
+        
+        const tabs = ['my', 'favorite'];
+        tabs.forEach(t => {
+            const tabEl = document.getElementById('tab-' + t);
+            const contentEl = document.getElementById('content-' + t);
             
-            totalCountSpan.textContent = '0';
-            
-            const deleteAllBtn = document.getElementById('delete-all-btn');
-            if (deleteAllBtn) {
-                deleteAllBtn.classList.add('opacity-50', 'pointer-events-none');
+            if (t === tab) {
+                tabEl.classList.remove('bg-white', 'border-2', 'border-gray-100');
+                tabEl.classList.add('bg-gradient-to-br', 'from-blue-500', 'to-indigo-600');
+                tabEl.querySelector('.text-2xl').classList.remove('text-gray-800');
+                tabEl.querySelector('.text-2xl').classList.add('text-white');
+                tabEl.querySelector('.text-xs').classList.remove('text-gray-500');
+                tabEl.querySelector('.text-xs').classList.add('text-white/80');
+                contentEl.classList.remove('hidden');
+            } else {
+                tabEl.classList.remove('bg-gradient-to-br', 'from-blue-500', 'to-indigo-600');
+                tabEl.classList.add('bg-white', 'border-2', 'border-gray-100');
+                tabEl.querySelector('.text-2xl').classList.remove('text-white');
+                tabEl.querySelector('.text-2xl').classList.add('text-gray-800');
+                tabEl.querySelector('.text-xs').classList.remove('text-white/80');
+                tabEl.querySelector('.text-xs').classList.add('text-gray-500');
+                contentEl.classList.add('hidden');
             }
-            
-            alert(data.message);
-        } else {
-            alert('全部删除失败：' + (data.message || '未知错误'));
+        });
+    }
+    
+    function searchMaterials(tab) {
+        const searchInput = document.getElementById('search-' + tab);
+        const grid = document.getElementById('grid-' + tab);
+        const cards = grid.querySelectorAll('.material-card');
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        
+        let hasVisible = false;
+        cards.forEach(card => {
+            const title = card.getAttribute('data-title');
+            if (searchTerm === '' || title.includes(searchTerm)) {
+                card.style.display = 'block';
+                hasVisible = true;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        // 检查或创建空状态提示
+        let emptyEl = document.getElementById('empty-' + tab);
+        if (!emptyEl) {
+            emptyEl = document.createElement('div');
+            emptyEl.id = 'empty-' + tab;
+            emptyEl.className = 'text-center py-16';
+            emptyEl.innerHTML = `
+                <div class="mx-auto w-20 h-20 bg-gray-100 rounded-3xl flex items-center justify-center mb-4">
+                    <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <h3 class="text-sm font-bold text-gray-500 mb-1">未找到素材</h3>
+                <p class="text-xs text-gray-400">试试其他关键词</p>
+            `;
+            grid.parentNode.appendChild(emptyEl);
         }
-    })
-    .catch(error => {
-        console.error('全部删除素材出错:', error);
-        alert('全部删除失败，请稍后重试');
-    });
-}
-
-function batchDeleteMaterials() {
-    const checkboxes = document.querySelectorAll('.material-checkbox:checked');
-    if (checkboxes.length === 0) {
-        alert('请先选择要删除的素材！');
-        return;
+        
+        if (searchTerm === '' || hasVisible) {
+            emptyEl.classList.add('hidden');
+        } else {
+            emptyEl.classList.remove('hidden');
+        }
     }
     
-    if (!confirm(`确定要删除选中的 ${checkboxes.length} 个素材吗？删除后无法恢复！`)) {
-        return;
-    }
-    
-    const userMaterialIds = Array.from(checkboxes).map(cb => parseInt(cb.dataset.id));
-    
-    fetch('/api/user-materials/batch-delete', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ user_material_ids: userMaterialIds })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            userMaterialIds.forEach(id => {
-                const card = document.querySelector(`.material-card[data-id="${id}"]`);
-                if (card) {
-                    card.style.opacity = '0';
-                    card.style.transform = 'scale(0.8)';
-                    card.style.transition = 'all 0.3s ease';
-                    setTimeout(() => card.remove(), 300);
+    async function deleteAllMaterials() {
+        if (!confirm('确定要删除所有素材吗？此操作不可恢复！')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/user-materials/delete-all', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
                 }
             });
             
-            const countSpan = document.getElementById('total-count');
-            if (countSpan) {
-                const currentCount = parseInt(countSpan.textContent);
-                const newCount = currentCount - userMaterialIds.length;
-                countSpan.textContent = newCount;
-                
-                if (newCount === 0) {
-                    const deleteAllBtn = document.getElementById('delete-all-btn');
-                    if (deleteAllBtn) {
-                        deleteAllBtn.classList.add('opacity-50', 'pointer-events-none');
-                    }
-                    const container = document.getElementById('materials-container');
-                    setTimeout(() => {
-                        container.innerHTML = `
-                            <div class="flex flex-col items-center justify-center py-16 space-y-4" id="empty-state">
-                                <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-                                    <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z" />
-                                    </svg>
-                                </div>
-                                <div class="text-center space-y-1">
-                                    <p class="text-gray-600 font-medium">还没有素材</p>
-                                    <p class="text-gray-400 text-sm">去素材库下载素材开始创作吧！</p>
-                                </div>
-                                <a href="{{ url_for('main.index') }}" class="mt-4 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold rounded-full shadow-lg shadow-blue-200 active:scale-95 transition-transform">
-                                    去素材库
-                                </a>
-                            </div>
-                        `;
-                    }, 300);
-                }
-            }
+            const result = await response.json();
             
-            updateSelectedCount();
-        } else {
-            alert('批量删除失败：' + (data.message || '未知错误'));
+            if (result.success) {
+                alert(result.message);
+                window.location.reload();
+            } else {
+                alert(result.message);
+            }
+        } catch (error) {
+            console.error('删除失败:', error);
+            alert('删除失败，请重试');
         }
-    })
-    .catch(error => {
-        console.error('批量删除素材出错:', error);
-        alert('批量删除失败，请稍后重试');
-    });
-}
+    }
 </script>
 {% endblock %}

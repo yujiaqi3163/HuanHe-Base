@@ -125,7 +125,7 @@
     
     <!-- 1. 顶部导航栏 -->
     <header class="sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-100/50 px-4 py-3 flex items-center justify-between">
-        <!-- 左边：用户头像 + 用户名称 -->
+        <!-- 左边：用户头像 -->
         <div class="flex items-center gap-2">
             <div class="w-9 h-9 flex-shrink-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden">
                 {% if current_user and current_user.avatar %}
@@ -134,20 +134,20 @@
                     {{ current_user.username[0] if current_user and current_user.username else 'U' }}
                 {% endif %}
             </div>
-            <span class="text-sm font-semibold text-gray-800">{{ current_user.username if current_user else '用户' }}</span>
         </div>
         
-        <!-- 中间：幻核矩阵标题 -->
-        <div class="absolute left-1/2 -translate-x-1/2">
+        <!-- 中间：logo + 标题 -->
+        <div class="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="幻核矩阵" class="w-6 h-6 object-contain">
             <h1 class="text-base font-black text-gray-900 tracking-tight">幻核矩阵</h1>
         </div>
         
-        <!-- 右边：消息中心（保持不变） -->
-        <button class="relative p-2.5 bg-gray-100/80 text-gray-600 rounded-2xl active:scale-90 transition-transform">
+        <!-- 右边：公告 -->
+        <button onclick="openAnnouncementModal()" class="relative p-2.5 bg-gray-100/80 text-gray-600 rounded-2xl active:scale-90 transition-transform">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.999 3.999 0 00-1.564.317z" />
             </svg>
-            <span class="absolute top-2.5 right-2.5 w-2 h-2 bg-blue-600 rounded-full border-2 border-white"></span>
+            <span class="absolute top-2.5 right-2.5 w-2 h-2 bg-orange-500 rounded-full border-2 border-white"></span>
         </button>
     </header>
     {% endblock %}
@@ -169,27 +169,20 @@
             <span class="text-[8px] font-black mt-0.5">首页</span>
         </a>
 
-        <!-- 分类 -->
-        <a href="#" class="flex flex-col items-center justify-center w-12 h-12 rounded-2xl transition-all active:scale-90 {% if request.endpoint == 'main.categories' %}bg-blue-50 text-blue-600{% else %}text-gray-400{% endif %}">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16m-7 6h7" />
-            </svg>
-            <span class="text-[8px] font-black mt-0.5">分类</span>
-        </a>
-
-        <!-- 创作/发布 -->
-        <a href="#" class="flex items-center justify-center w-12 h-12 bg-blue-600 rounded-full text-white shadow-lg shadow-blue-200 active:scale-90 transition-transform">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
-            </svg>
-        </a>
-
         <!-- 我的作品库 -->
         <a href="{{ url_for('main.my_materials') }}" class="flex flex-col items-center justify-center w-12 h-12 rounded-2xl transition-all active:scale-90 {% if request.endpoint == 'main.my_materials' or request.endpoint == 'main.my_material_detail' %}bg-blue-50 text-blue-600{% else %}text-gray-400{% endif %}">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
             <span class="text-[8px] font-black mt-0.5">作品库</span>
+        </a>
+
+        <!-- 粒子 -->
+        <a href="{{ url_for('main.easter_egg') }}" class="flex flex-col items-center justify-center w-12 h-12 rounded-2xl transition-all active:scale-90 {% if request.endpoint == 'main.easter_egg' %}bg-purple-50 text-purple-600{% else %}text-gray-400{% endif %}">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+            </svg>
+            <span class="text-[8px] font-black mt-0.5">粒子</span>
         </a>
 
         <!-- 我的 -->
@@ -202,7 +195,120 @@
     </nav>
     {% endblock %}
 
+    <!-- 公告弹窗 -->
+    <div id="announcementModal" class="fixed inset-0 z-[100] hidden">
+        <!-- 背景遮罩 -->
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeAnnouncementModal()"></div>
+        
+        <!-- 弹窗内容 -->
+        <div class="absolute inset-0 flex items-center justify-center p-6">
+            <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-fadeIn relative max-h-[80vh] flex flex-col">
+                <!-- 顶部渐变装饰 -->
+                <div class="bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600 h-2"></div>
+                
+                <!-- 关闭按钮 -->
+                <button type="button" onclick="closeAnnouncementModal()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors z-10">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+                
+                <!-- 公告列表视图 -->
+                <div id="announcementListView" class="flex-1 overflow-y-auto">
+                    <div class="p-6">
+                        <!-- 标题和图标 -->
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-orange-500 to-pink-600 rounded-3xl flex items-center justify-center shadow-lg">
+                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.999 3.999 0 00-1.564.317z" />
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-black text-gray-900">重要公告</h3>
+                        </div>
+                        
+                        <!-- 公告列表 -->
+                        <div class="space-y-3">
+                            {% if announcements %}
+                                {% for announcement in announcements %}
+                                    <div onclick="showAnnouncementDetail({{ loop.index0 }})" class="bg-gray-50 hover:bg-gray-100 rounded-2xl p-4 cursor-pointer transition-all active:scale-[0.98]">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div class="flex-1">
+                                                {% if loop.index0 == 0 %}
+                                                    <div class="flex items-center gap-2 mb-1">
+                                                        <div class="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                                        <span class="text-xs font-medium text-orange-600">最新</span>
+                                                    </div>
+                                                {% endif %}
+                                                <h4 class="font-bold text-gray-800 text-sm mb-1">{{ announcement.title }}</h4>
+                                                <p class="text-xs text-gray-500 line-clamp-2">{{ announcement.content[:100] | safe | striptags }}{% if announcement.content|length > 100 %}...{% endif %}</p>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3 flex items-center justify-between">
+                                            <span class="text-xs text-gray-400">{{ announcement.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center py-8">
+                                    <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.999 3.999 0 00-1.564.317z" />
+                                    </svg>
+                                    <p class="text-gray-500 text-sm">暂无公告</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 公告详情视图 -->
+                <div id="announcementDetailView" class="flex-1 overflow-y-auto hidden">
+                    <div class="p-6">
+                        <!-- 返回按钮 -->
+                        <button onclick="showAnnouncementList()" class="flex items-center gap-2 mb-6 text-gray-500 hover:text-gray-700 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                            <span class="text-sm font-bold">返回列表</span>
+                        </button>
+                        
+                        <!-- 详情标题 -->
+                        <div class="mb-6">
+                            <h3 id="announcementDetailTitle" class="text-xl font-black text-gray-900 mb-2"></h3>
+                            <div class="flex items-center gap-2">
+                                <span id="announcementDetailTime" class="text-xs text-gray-500"></span>
+                                <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                <span id="announcementDetailTag" class="text-xs text-orange-600 font-medium"></span>
+                            </div>
+                        </div>
+                        
+                        <!-- 详情内容 -->
+                        <div id="announcementDetailContent" class="prose prose-sm prose-gray max-w-none">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // 从后端获取的公告数据
+        const announcements = [
+            {% if announcements %}
+                {% for announcement in announcements %}
+                    {
+                        id: {{ loop.index0 }},
+                        title: {{ announcement.title | tojson }},
+                        time: {{ announcement.created_at.strftime('%Y-%m-%d %H:%M') | tojson }},
+                        isNew: {{ loop.index0 == 0 | lower }},
+                        content: {{ announcement.content | tojson }}
+                    }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            {% endif %}
+        ];
+
         // 生成或获取设备ID
         function getDeviceId() {
             let deviceId = localStorage.getItem('device_id');
@@ -237,6 +343,65 @@
             } catch (error) {
                 console.log('❌ 保存设备ID失败:', error);
             }
+        }
+
+        // 打开公告弹窗
+        function openAnnouncementModal() {
+            const modal = document.getElementById('announcementModal');
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            showAnnouncementList();
+        }
+
+        // 关闭公告弹窗
+        function closeAnnouncementModal() {
+            const modal = document.getElementById('announcementModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        // 显示公告列表
+        function showAnnouncementList() {
+            const listView = document.getElementById('announcementListView');
+            const detailView = document.getElementById('announcementDetailView');
+            listView.classList.remove('hidden');
+            detailView.classList.add('hidden');
+        }
+
+        // 显示公告详情
+        function showAnnouncementDetail(id) {
+            const announcement = announcements.find(a => a.id === id);
+            if (!announcement) return;
+
+            const listView = document.getElementById('announcementListView');
+            const detailView = document.getElementById('announcementDetailView');
+            const detailTitle = document.getElementById('announcementDetailTitle');
+            const detailTime = document.getElementById('announcementDetailTime');
+            const detailTag = document.getElementById('announcementDetailTag');
+            const detailContent = document.getElementById('announcementDetailContent');
+
+            detailTitle.textContent = announcement.title;
+            detailTime.textContent = announcement.time;
+            detailTag.textContent = announcement.isNew ? '最新公告' : '公告';
+            detailContent.innerHTML = announcement.content + `
+                <!-- 温馨提示 -->
+                <div class="bg-orange-50 border border-orange-100 rounded-xl p-4 mt-6">
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 bg-orange-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-orange-800 text-sm mb-1">温馨提示</h4>
+                            <p class="text-xs text-orange-700 leading-relaxed">如果您在使用过程中有任何问题，请添加客服微信咨询，我们会第一时间为您解决！</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            listView.classList.add('hidden');
+            detailView.classList.remove('hidden');
         }
 
         document.addEventListener('DOMContentLoaded', function() {

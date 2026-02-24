@@ -83,6 +83,8 @@ def device_required(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        from app import db
+        
         # 检查用户是否已登录
         if not current_user.is_authenticated:
             return jsonify({
@@ -102,14 +104,11 @@ def device_required(f):
         
         # 检查用户是否绑定了设备
         if not current_user.bound_device_id:
-            logger.warning(f'用户 {current_user.username} 未绑定设备')
-            return jsonify({
-                'success': False,
-                'message': '账号未绑定设备，请先登录绑定'
-            }), 403
-        
-        # 比对设备ID
-        if current_user.bound_device_id != device_id:
+            # 用户未绑定设备，自动绑定
+            current_user.bound_device_id = device_id
+            db.session.commit()
+            logger.info(f'用户 {current_user.username} 自动绑定设备')
+        elif current_user.bound_device_id != device_id:
             logger.warning(f'设备ID不匹配 - 用户: {current_user.username}, 请求设备: {device_id}, 绑定设备: {current_user.bound_device_id}')
             return jsonify({
                 'success': False,

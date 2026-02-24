@@ -196,6 +196,22 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(admin_bp, url_prefix='/admin')
     
+    # 全局上下文处理器 - 传递公告数据和客服微信
+    @app.context_processor
+    def inject_global_vars():
+        from app.models import Announcement, Config
+        announcements = Announcement.query.filter_by(is_published=True).order_by(
+            Announcement.sort_order.desc(), 
+            Announcement.created_at.desc()
+        ).all()
+        customer_service_wechat = Config.get_value('customer_service_wechat', 'your_kefu_wechat')
+        customer_service_qrcode = Config.get_value('customer_service_qrcode', '')
+        return {
+            'announcements': announcements, 
+            'customer_service_wechat': customer_service_wechat,
+            'customer_service_qrcode': customer_service_qrcode
+        }
+    
     # 配置日志系统
     from app.utils.logger import setup_logging
     setup_logging(app)

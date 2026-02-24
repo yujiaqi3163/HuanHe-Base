@@ -44,19 +44,15 @@
     </a>
 
     <!-- 2. 数据看板 -->
-    <div class="grid grid-cols-3 gap-2 text-center">
-        <div class="bg-white py-3 rounded-2xl border border-gray-50">
-            <p class="text-lg font-black text-gray-800">128</p>
+    <div class="grid grid-cols-2 gap-2">
+        <a href="{{ url_for('main.my_materials', active_tab='my') }}" class="bg-white py-3 rounded-2xl border border-gray-50 text-center block active:bg-gray-50 transition-colors">
+            <p class="text-lg font-black text-gray-800">{{ my_materials_count }}</p>
             <p class="text-[10px] text-gray-400">生成素材</p>
-        </div>
-        <div class="bg-white py-3 rounded-2xl border border-gray-50">
-            <p class="text-lg font-black text-gray-800">15</p>
+        </a>
+        <a href="{{ url_for('main.my_materials', active_tab='favorite') }}" class="bg-white py-3 rounded-2xl border border-gray-50 text-center block active:bg-gray-50 transition-colors">
+            <p class="text-lg font-black text-gray-800">{{ favorite_materials_count }}</p>
             <p class="text-[10px] text-gray-400">收藏夹</p>
-        </div>
-        <div class="bg-white py-3 rounded-2xl border border-gray-50">
-            <p class="text-lg font-black text-gray-800">32</p>
-            <p class="text-[10px] text-gray-400">下载数</p>
-        </div>
+        </a>
     </div>
 
     <!-- 3. 功能列表组 -->
@@ -92,7 +88,7 @@
         {% endif %}
 
         <!-- 帮助中心 -->
-        <a href="#" class="flex items-center justify-between px-5 py-4 active:bg-gray-50 transition-colors border-b border-gray-50">
+        <button type="button" onclick="openCustomerServiceModal()" class="w-full flex items-center justify-between px-5 py-4 active:bg-gray-50 transition-colors border-b border-gray-50 text-left">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -100,17 +96,17 @@
                 <span class="text-sm font-medium text-gray-700">帮助与反馈</span>
             </div>
             <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-        </a>
+        </button>
 
         <!-- 关于应用 -->
-        <a href="#" class="flex items-center justify-between px-5 py-4 active:bg-gray-50 transition-colors">
+        <a href="{{ url_for('main.about') }}" class="flex items-center justify-between px-5 py-4 active:bg-gray-50 transition-colors">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
                 <span class="text-sm font-medium text-gray-700">关于 幻核矩阵</span>
             </div>
-            <span class="text-[10px] text-gray-400 font-mono">v1.0.4</span>
+            <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linecap="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
         </a>
     </div>
 
@@ -123,4 +119,91 @@
     </div>
 
 </div>
+
+<!-- 客服二维码弹窗 -->
+<div id="customerServiceModal" class="fixed inset-0 z-[100] hidden">
+    <!-- 背景遮罩 -->
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeCustomerServiceModal()"></div>
+    
+    <!-- 弹窗内容 -->
+    <div class="absolute inset-0 flex items-center justify-center p-6">
+        <div class="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-fadeIn relative">
+            <!-- 关闭按钮 -->
+            <button type="button" onclick="closeCustomerServiceModal()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors z-10">
+                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            
+            <!-- 弹窗内容区 -->
+            <div class="p-6">
+                <!-- 标题和图标 -->
+                <div class="text-center mb-5">
+                    <div class="w-14 h-14 mx-auto mb-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800">扫码咨询客服</h3>
+                    <p class="text-sm text-gray-500 mt-1">添加客服微信，获取专属帮助</p>
+                </div>
+                
+                <!-- 二维码图片 -->
+                <div class="bg-gray-50 rounded-2xl p-4 mb-4">
+                    {% if customer_service_qrcode %}
+                    <img src="{{ customer_service_qrcode }}" alt="客服微信" class="w-full h-auto rounded-xl">
+                    {% else %}
+                    <img src="{{ url_for('static', filename='images/客服微信.jpg') }}" alt="客服微信" class="w-full h-auto rounded-xl">
+                    {% endif %}
+                </div>
+                
+                <!-- 提示信息 -->
+                <div class="bg-green-50 border border-green-100 rounded-xl p-3 text-center">
+                    <p class="text-xs text-green-700">
+                        <i class="fa-solid fa-circle-info mr-1"></i>
+                        长按保存或截图二维码，在微信中扫码添加
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    .animate-fadeIn {
+        animation: fadeIn 0.25s ease-out forwards;
+    }
+</style>
+
+<script>
+    function openCustomerServiceModal() {
+        const modal = document.getElementById('customerServiceModal');
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeCustomerServiceModal() {
+        const modal = document.getElementById('customerServiceModal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+    
+    // 按ESC键关闭弹窗
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeCustomerServiceModal();
+        }
+    });
+</script>
 {% endblock %}
