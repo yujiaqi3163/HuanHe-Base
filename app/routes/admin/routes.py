@@ -24,6 +24,8 @@ from app.forms.material_type import MaterialTypeForm
 from app.models import Material, MaterialType, MaterialImage, RegisterSecret, User, Config, UserMaterial, UserMaterialImage, Permission, UserPermission, TerminalSecret, Announcement
 # 导入日志模块
 from app.utils.logger import get_logger
+# 导入限流器
+from app.utils.rate_limit import limiter
 # 导入文件处理模块
 import os
 import re
@@ -1203,6 +1205,7 @@ def api_delete_all_materials():
 @login_required
 @admin_required
 @permission_required('material_manage')
+@limiter.exempt
 def batch_upload_material():
     """批量上传素材API（带安全验证）"""
     try:
@@ -1211,25 +1214,37 @@ def batch_upload_material():
         text_file = request.files.get('text_file')
         
         # 获取所有图片文件 - 使用更兼容的方式
-        image_files = []
+        # 先保存文件信息，不直接读取流
+        image_file_info = []
         for key in request.files:
             if key.startswith('images'):
                 files = request.files.getlist(key)
-                image_files.extend(files)
+                for f in files:
+                    if f and f.filename:
+                        image_file_info.append({
+                            'key': key,
+                            'filename': f.filename,
+                            'file_obj': f
+                        })
         
-        # 验证图片文件
+        # 验证图片文件（先验证但不读取完整流）
         invalid_files = []
-        valid_image_files = []
-        for img_file in image_files:
-            if img_file and img_file.filename:
+        valid_file_info = []
+        
+        for info in image_file_info:
+            img_file = info['file_obj']
+            try:
                 is_valid, error_msg = validate_file(img_file, ALLOWED_IMAGE_EXTENSIONS)
                 if is_valid:
-                    valid_image_files.append(img_file)
+                    valid_file_info.append(info)
                 else:
-                    invalid_files.append(f'{img_file.filename}: {error_msg}')
+                    invalid_files.append(f'{info["filename"]}: {error_msg}')
+            except Exception as e:
+                invalid_files.append(f'{info["filename"]}: 验证失败 - {str(e)}')
         
         # 如果有无效文件，返回错误
         if invalid_files:
+            logger.warning(f'批量上传发现无效文件: {invalid_files}')
             return jsonify({
                 'success': False,
                 'message': '部分文件验证失败',
@@ -1237,7 +1252,7 @@ def batch_upload_material():
             }), 400
         
         # 如果没有有效图片，返回错误
-        if not valid_image_files:
+        if not valid_file_info:
             return jsonify({
                 'success': False,
                 'message': '没有有效的图片文件'
@@ -1247,20 +1262,23 @@ def batch_upload_material():
         title = ""
         content = ""
         if text_file:
-            content_str = text_file.read().decode('utf-8')
-            title_match = re.search(r'title\s*[：:]\s*"(.*?)"', content_str, re.DOTALL | re.IGNORECASE)
-            content_match = re.search(r'content\s*[：:]\s*"(.*?)"', content_str, re.DOTALL | re.IGNORECASE)
-            if title_match:
-                title = title_match.group(1)
-            if content_match:
-                content = content_match.group(1)
+            try:
+                content_str = text_file.read().decode('utf-8')
+                title_match = re.search(r'title\s*[：:]\s*"(.*?)"', content_str, re.DOTALL | re.IGNORECASE)
+                content_match = re.search(r'content\s*[：:]\s*"(.*?)"', content_str, re.DOTALL | re.IGNORECASE)
+                if title_match:
+                    title = title_match.group(1)
+                if content_match:
+                    content = content_match.group(1)
+            except Exception as e:
+                logger.warning(f'解析文案文件失败: {str(e)}')
         
         # 检查标题是否为空
         if not title:
             title = folder_name or "未命名素材"
         
         # 图片按文件名排序
-        valid_image_files.sort(key=lambda x: x.filename)
+        valid_file_info.sort(key=lambda x: x['filename'])
         
         # 获取或创建"副业"分类
         material_type = MaterialType.query.filter_by(name="副业").first()
@@ -1285,31 +1303,58 @@ def batch_upload_material():
         # 再flush获取素材ID
         db.session.flush()
         
-        # 保存图片
-        for idx, img_file in enumerate(valid_image_files):
-            img_url = save_image(img_file)
-            if img_url:
-                image = MaterialImage(
-                    material_id=material.id,
-                    image_url=img_url,
-                    is_cover=(idx == 0),
-                    sort_order=idx
-                )
-                db.session.add(image)
+        # 保存图片 - 重新从request.files获取文件流
+        saved_count = 0
+        for idx, info in enumerate(valid_file_info):
+            try:
+                # 重新获取文件对象
+                img_file = request.files.get(info['key'])
+                if not img_file:
+                    # 尝试通过getlist获取
+                    files = request.files.getlist(info['key'])
+                    for f in files:
+                        if f.filename == info['filename']:
+                            img_file = f
+                            break
+                
+                if img_file:
+                    # 重置文件指针
+                    img_file.seek(0)
+                    img_url = save_image(img_file)
+                    if img_url:
+                        image = MaterialImage(
+                            material_id=material.id,
+                            image_url=img_url,
+                            is_cover=(idx == 0),
+                            sort_order=idx
+                        )
+                        db.session.add(image)
+                        saved_count += 1
+            except Exception as e:
+                logger.error(f'保存图片失败 {info["filename"]}: {str(e)}')
+        
+        if saved_count == 0:
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'message': '所有图片保存失败'
+            }), 500
         
         # 提交到数据库
         db.session.commit()
         
+        logger.info(f'批量上传成功: {title}, 保存了 {saved_count} 张图片')
+        
         return jsonify({
             'success': True,
             'message': f'素材 "{title}" 上传成功',
-            'uploaded_images': len(valid_image_files)
+            'uploaded_images': saved_count
         })
         
     except Exception as e:
         db.session.rollback()
-        logger.error(f'批量上传素材失败: {str(e)}')
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logger.error(f'批量上传素材失败: {str(e)}', exc_info=True)
+        return jsonify({'success': False, 'message': f'上传失败: {str(e)}'}), 500
 
 
 # ============================================================
