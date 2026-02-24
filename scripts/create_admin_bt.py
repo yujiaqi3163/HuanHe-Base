@@ -101,35 +101,51 @@ def create_super_admins():
         
         for admin_info in super_admins:
             username = admin_info['username']
+            email = admin_info['email']
+            password = admin_info['password']
             
-            # 检查账号是否已存在
-            existing_user = User.query.filter_by(username=username).first()
+            # 检查用户名是否已存在
+            existing_by_username = User.query.filter_by(username=username).first()
             
-            if existing_user:
+            if existing_by_username:
                 print(f'  ℹ️ 账号 "{username}" 已存在')
                 
-                # 检查邮箱是否正确
-                if existing_user.email != admin_info['email']:
-                    print(f'     → 更新邮箱: {existing_user.email} → {admin_info["email"]}')
-                    existing_user.email = admin_info['email']
+                # 更新用户信息
+                existing_by_username.is_super_admin = True
+                existing_by_username.is_admin = True
+                existing_by_username.password = password
                 
-                # 确保是超级管理员
-                if not existing_user.is_super_admin:
-                    print(f'     → 升级为超级管理员')
-                    existing_user.is_super_admin = True
-                    existing_user.is_admin = True
+                # 如果邮箱不同，尝试更新邮箱
+                if existing_by_username.email != email:
+                    # 检查新邮箱是否被其他用户占用
+                    existing_by_email = User.query.filter_by(email=email).first()
+                    if existing_by_email and existing_by_email.id != existing_by_username.id:
+                        print(f'  ⚠️  邮箱 "{email}" 已被用户 "{existing_by_email.username}" 占用，跳过更新邮箱')
+                    else:
+                        old_email = existing_by_username.email
+                        existing_by_username.email = email
+                        print(f'  ✅ 更新邮箱: {old_email} → {email}')
                 
+                print(f'  ✅ 已更新 "{username}" 的密码和权限')
                 skipped_count += 1
                 continue
             
-            # 创建新账号
+            # 用户名不存在，检查邮箱是否已被占用
+            existing_by_email = User.query.filter_by(email=email).first()
+            
+            if existing_by_email:
+                print(f'  ⚠️  邮箱 "{email}" 已被用户 "{existing_by_email.username}" 占用，跳过创建账号 "{username}"')
+                skipped_count += 1
+                continue
+            
+            # 用户名和邮箱都不存在，正常创建新账号
             admin = User(
                 username=username,
-                email=admin_info['email'],
+                email=email,
                 is_admin=True,
                 is_super_admin=True
             )
-            admin.password = admin_info['password']
+            admin.password = password
             db.session.add(admin)
             
             print(f'  ✅ 创建超级管理员: {username}')
