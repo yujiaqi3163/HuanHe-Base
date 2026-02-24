@@ -257,8 +257,8 @@ def create_sample_data():
         
         # 定义要创建的超级管理员列表
         super_admins = [
-            {'username': 'pc_yujiaqi', 'email': 'pc_yujiaqi@example.com'},
-            {'username': 'pe_yujiaqi', 'email': 'pe_yujiaqi@example.com'}
+            {'username': 'pc_yujiaqi', 'email': '2798479668@qq.com'},
+            {'username': 'pe_yujiaqi', 'email': 'aa13178775196@163.com'}
         ]
         
         created_count = 0
