@@ -98,7 +98,8 @@ my_flask_app/
 │   └── tasks.py                  # Celery 异步任务
 ├── scripts/                      # 脚本工具
 │   ├── init_database.py          # 初始化数据库
-│   ├── create_super_admin.py     # 创建超级管理员
+│   ├── create_admin.py           # 创建超级管理员（通用版）
+│   ├── create_admin_bt.py        # 创建超级管理员（宝塔版）
 │   ├── add_permissions.py        # 添加权限
 │   ├── diagnose_imports.py       # 模型导入诊断
 │   ├── migrate_*.py              # 数据库迁移脚本
@@ -135,7 +136,7 @@ pip install -r requirements.txt
 
 # 3. 初始化数据库
 python scripts/init_database.py
-python scripts/create_super_admin.py
+python scripts/create_admin.py
 
 # 4. 启动项目（需要3个终端）
 
@@ -831,7 +832,7 @@ pip install -r requirements.txt
 ### 管理后台路由（app/routes/admin/routes.py）
 
 **主要功能：**
-- **数据统计**：总素材数、未使用卡密数、用户总数、最新素材、最新卡密
+- **数据统计**：总素材数、创作素材数、未使用卡密数、用户总数、最新素材、最新卡密、用户增长趋势图、数据分布饼图
 - **素材管理**：
   - 素材列表（无限滚动、分类筛选、搜索）
   - 添加素材（标题、文案、分类、封面图、细节图）
@@ -1246,12 +1247,8 @@ python scripts/init_database.py --sample
 
 创建以下示例数据：
 
-- **3 个素材分类**: 朋友圈、小红书、抖音
-- **4 个测试卡密**:
-  - `sk-test-permanent-001`（永久）
-  - `sk-test-1year-001`（1 年）
-  - `sk-test-1month-001`（1 个月）
-  - `sk-test-1day-001`（1 天）
+- **1 个素材分类**: 副业
+- **卡密**: 保持空状态，需要手动添加
 
 ### 超级管理员初始化
 
@@ -1261,23 +1258,25 @@ python scripts/init_database.py --sample
 
 - ✅ **跳过设备锁验证**: 可以在任意设备上登录，无需绑定设备
 - ✅ **完整管理员权限**: 可访问管理后台所有功能
-- ✅ **设置邮箱**: 绑定到 2798479668@qq.com
 
 #### 初始化超级管理员
 
 运行以下命令创建或更新超级管理员：
 
 ```bash
-python scripts/create_super_admin.py
+# 通用版（交互式）
+python scripts/create_admin.py
+
+# 或宝塔专用版（自动检测路径）
+python scripts/create_admin_bt.py
 ```
 
 #### 登录信息
 
-| 项 | 值 |
-|-----|-----|
-| 用户名 | `admin` |
-| 邮箱 | `2798479668@qq.com` |
-| 密码 | `Aa123456!` |
+| 账号 | 邮箱 | 密码 | 用途 |
+|------|------|------|------|
+| **pc_yujiaqi** | 2798479668@qq.com | **Yun803163** | 电脑端 |
+| **pe_yujiaqi** | aa13178775196@163.com | **Yun803163** | 手机端 |
 
 ### 常见问题
 
@@ -1646,5 +1645,5 @@ pip install -r requirements.txt
 
 ---
 
-**文档版本**: v3.0
+**文档版本**: v3.1
 **最后更新**: 2026-02-25
