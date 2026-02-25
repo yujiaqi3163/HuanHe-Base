@@ -26,8 +26,8 @@ def update_material_stats():
         
         for material in materials:
             material.view_count = random.randint(0, 10000)
-            material.favorite_count = random.randint(0, 5000)
-            material.download_count = random.randint(0, 5000)
+            material.favorite_count = random.randint(0, 10000)
+            material.download_count = random.randint(0, 10000)
             
             print(f'素材 #{material.id} - {material.title}: 浏览={material.view_count}, 收藏={material.favorite_count}, 下载={material.download_count}')
         

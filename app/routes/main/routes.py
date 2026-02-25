@@ -11,7 +11,7 @@
 
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, current_app  # 导入Flask相关模块
 from flask_login import login_required, current_user  # 导入登录相关模块
-from app.models import User, RegisterSecret, Material, UserMaterial, UserMaterialImage, UserFavorite, UserDownload, Announcement  # 导入数据模型
+from app.models import User, RegisterSecret, Material, UserMaterial, UserMaterialImage, UserFavorite, UserDownload, Announcement, Config  # 导入数据模型
 from app import db  # 导入数据库
 from app.decorators import device_required  # 导入设备锁装饰器
 from app.utils.logger import get_logger  # 导入日志模块
@@ -174,6 +174,9 @@ def index():
     # 获取客服微信
     customer_service_wechat = Config.get_value('customer_service_wechat', 'your_kefu_wechat')
     
+    # 获取最新发布的公告
+    latest_announcement = Announcement.query.filter_by(is_published=True).order_by(Announcement.sort_order.desc(), Announcement.created_at.desc()).first()
+    
     return render_template('main/index.html', 
                            users=users, 
                            register_secrets=register_secrets, 
@@ -181,7 +184,8 @@ def index():
                            latest_materials=latest_materials, 
                            total_count=total_count,
                            is_membership_valid=is_membership_valid,
-                           customer_service_wechat=customer_service_wechat)  # 渲染首页模板
+                           customer_service_wechat=customer_service_wechat,
+                           latest_announcement=latest_announcement)  # 渲染首页模板
 
 
 @bp.route('/profile')
@@ -822,6 +826,10 @@ def api_download_user_material(user_material_id):
     # 增加下载计数
     user_material.download_count += 1
     db.session.commit()
+    
+    # 增加总下载计数
+    current_download_count = int(Config.get_value('total_download_count', '0'))
+    Config.set_value('total_download_count', str(current_download_count + 1))
     
     return jsonify({
         'success': True,

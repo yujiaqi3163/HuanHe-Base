@@ -242,9 +242,7 @@ def create_sample_data():
         print('\n[1/4] 创建示例分类...')
         if not MaterialType.query.first():
             types = [
-                MaterialType(name='朋友圈', description='朋友圈素材', sort_order=1),
-                MaterialType(name='小红书', description='小红书素材', sort_order=2),
-                MaterialType(name='抖音', description='抖音素材', sort_order=3)
+                MaterialType(name='副业', description='副业素材', sort_order=1)
             ]
             db.session.add_all(types)
             db.session.commit()
@@ -284,24 +282,9 @@ def create_sample_data():
         else:
             print('  ℹ️ 超级管理员已存在，跳过')
         
-        # 创建测试卡密
-        print('\n[3/4] 创建测试卡密...')
-        if not RegisterSecret.query.first():
-            secrets = [
-                RegisterSecret(secret='sk-test-permanent-001', duration_type='permanent'),
-                RegisterSecret(secret='sk-test-1year-001', duration_type='1year'),
-                RegisterSecret(secret='sk-test-1month-001', duration_type='1month'),
-                RegisterSecret(secret='sk-test-1day-001', duration_type='1day')
-            ]
-            db.session.add_all(secrets)
-            db.session.commit()
-            print('  ✅ 测试卡密创建成功')
-            print('  sk-test-permanent-001 (永久)')
-            print('  sk-test-1year-001 (1年)')
-            print('  sk-test-1month-001 (1个月)')
-            print('  sk-test-1day-001 (1天)')
-        else:
-            print('  ℹ️ 卡密已存在，跳过')
+        # 创建测试卡密（空状态）
+        print('\n[3/4] 保持卡密为空状态...')
+        print('  ℹ️ 卡密表保持为空，需要手动添加')
         
         print('\n' + '=' * 60)
         print('🎉 示例数据创建完成！')

@@ -1,146 +1,493 @@
 {% extends "admin/admin_base.html" %}
 
 {% block admin_content %}
-<div class="px-4 py-6 space-y-6">
+<style>
+    .dashboard-container {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        min-height: calc(100vh - 120px);
+        padding: 20px;
+    }
+    
+    .stats-card {
+        background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 16px;
+        padding: 20px;
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+    }
+    
+    .stats-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7);
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(99, 102, 241, 0.5);
+        box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2);
+    }
+    
+    .stats-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+    }
+    
+    .stats-value {
+        font-size: 36px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1;
+    }
+    
+    .stats-label {
+        color: #94a3b8;
+        font-size: 14px;
+        font-weight: 500;
+        margin-top: 8px;
+    }
+    
+    .stats-trend {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        margin-top: 12px;
+    }
+    
+    .trend-up {
+        color: #22c55e;
+    }
+    
+    .chart-card {
+        background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 16px;
+        padding: 24px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .chart-title {
+        color: #e2e8f0;
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .chart-title::before {
+        content: '';
+        width: 4px;
+        height: 20px;
+        background: linear-gradient(180deg, #6366f1, #8b5cf6);
+        border-radius: 2px;
+    }
+    
+    .chart-container {
+        width: 100%;
+        height: 300px;
+    }
+    
+    .glow-text {
+        text-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+    }
+    
+    @keyframes countUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-count {
+        animation: countUp 0.6s ease-out;
+    }
+    
+    .dashboard-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .dashboard-title {
+        font-size: 28px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 8px;
+    }
+    
+    .dashboard-subtitle {
+        color: #64748b;
+        font-size: 14px;
+    }
+    
+    .current-time {
+        color: #94a3b8;
+        font-size: 12px;
+        font-family: 'Courier New', monospace;
+    }
+</style>
 
-    <!-- 1. 统计概览 -->
-    <div class="grid grid-cols-3 gap-2">
+<div class="dashboard-container">
+    <!-- 头部标题 -->
+    <div class="dashboard-header">
+        <h1 class="dashboard-title glow-text">数据可视化大屏</h1>
+        <p class="dashboard-subtitle">实时监控 · 智能分析 · 数据驱动</p>
+        <p class="current-time" id="currentTime"></p>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         <!-- 总素材数 -->
-        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-3 text-white shadow-lg shadow-blue-100 flex flex-col justify-between">
-            <div>
-                <p class="text-[10px] opacity-80 font-medium">总素材数</p>
-                <h3 class="text-lg font-black mt-0.5">{{ total_materials }}</h3>
+        <div class="stats-card">
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="stats-value animate-count" id="totalMaterials">{{ total_materials }}</div>
+                    <div class="stats-label">总素材数</div>
+                </div>
+                <div class="stats-icon" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));">
+                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2z"></path>
+                    </svg>
+                </div>
             </div>
-            <div class="mt-2 text-[9px] bg-white/20 w-fit px-1.5 py-0.5 rounded-md">
+            <div class="stats-trend trend-up">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                </svg>
                 实时统计
             </div>
         </div>
 
         <!-- 未使用卡密 -->
-        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-3 text-white shadow-lg shadow-purple-100 flex flex-col justify-between">
-            <div>
-                <p class="text-[10px] opacity-80 font-medium">未使用卡密</p>
-                <h3 class="text-lg font-black mt-0.5">{{ unused_secrets }}</h3>
+        <div class="stats-card">
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="stats-value animate-count" id="unusedSecrets">{{ unused_secrets }}</div>
+                    <div class="stats-label">未使用卡密</div>
+                </div>
+                <div class="stats-icon" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.1));">
+                    <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                    </svg>
+                </div>
             </div>
-            <div class="mt-2 text-[9px] bg-white/20 w-fit px-1.5 py-0.5 rounded-md">
-                库存
+            <div class="stats-trend">
+                <span style="color: #a855f7;">库存</span>
             </div>
         </div>
 
-        <!-- 用户总数 - 新增方块 -->
-        <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-3 text-white shadow-lg shadow-emerald-100 flex flex-col justify-between">
-            <div>
-                <p class="text-[10px] opacity-80 font-medium">用户总数</p>
-                <h3 class="text-lg font-black mt-0.5">{{ total_users }}</h3>
+        <!-- 用户总数 -->
+        <div class="stats-card">
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="stats-value animate-count" id="totalUsers">{{ total_users }}</div>
+                    <div class="stats-label">用户总数</div>
+                </div>
+                <div class="stats-icon" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.1));">
+                    <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                    </svg>
+                </div>
             </div>
-            <div class="mt-2 text-[9px] bg-white/20 w-fit px-1.5 py-0.5 rounded-md">
-                注册
+            <div class="stats-trend">
+                <span style="color: #22c55e;">注册</span>
+            </div>
+        </div>
+
+        <!-- 总创作数 -->
+        <div class="stats-card">
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="stats-value animate-count" id="totalRemix">{{ total_remix_count }}</div>
+                    <div class="stats-label">总创作数</div>
+                </div>
+                <div class="stats-icon" style="background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(249, 115, 22, 0.1));">
+                    <svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="stats-trend trend-up">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                </svg>
+                实时统计
             </div>
         </div>
     </div>
 
-
-
-    <!-- 3. 素材管理列表 -->
-    {% if current_user.is_super_admin or current_user.has_permission('material_manage') %}
-    <section class="space-y-4">
-        <div class="flex items-center justify-between">
-            <h2 class="text-lg font-bold text-gray-800">最新素材</h2>
-            <button class="text-sm text-blue-600 font-bold" onclick="window.location.href='{{ url_for('admin.materials') }}'">全部</button>
+    <!-- 图表区域 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 用户增长趋势图 -->
+        <div class="chart-card lg:col-span-2">
+            <h3 class="chart-title">用户增长趋势</h3>
+            <div id="userGrowthChart" class="chart-container"></div>
         </div>
-        
-        <div class="space-y-3">
-            {% for material in latest_materials %}
-            <div class="bg-white p-3 rounded-2xl border border-gray-100 flex items-center gap-3">
-                <div class="w-14 h-14 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                    {% set cover_image = material.images|selectattr('is_cover')|first %}
-                    {% if cover_image %}
-                    <img src="{{ cover_image.image_url }}" class="w-full h-full object-cover">
-                    {% else %}
-                    <div class="w-full h-full flex items-center justify-center bg-gray-100">
-                        <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z" /></svg>
+
+        <!-- 占比图 -->
+        <div class="chart-card">
+            <h3 class="chart-title">数据分布占比</h3>
+            <div id="pieChart" class="chart-container"></div>
+        </div>
+    </div>
+
+    <!-- 最新素材和卡密 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <!-- 最新素材 -->
+        {% if current_user.is_super_admin or current_user.has_permission('material_manage') %}
+        <div class="chart-card">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="chart-title">最新素材</h3>
+                <button class="text-sm text-indigo-400 font-bold hover:text-indigo-300 transition-colors" onclick="window.location.href='{{ url_for('admin.materials') }}'">查看全部 →</button>
+            </div>
+            <div class="space-y-3">
+                {% for material in latest_materials %}
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 transition-colors">
+                    <div class="w-12 h-12 bg-slate-700 rounded-xl overflow-hidden flex-shrink-0">
+                        {% set cover_image = material.images|selectattr('is_cover')|first %}
+                        {% if cover_image %}
+                        <img src="{{ cover_image.image_url }}" class="w-full h-full object-cover">
+                        {% else %}
+                        <div class="w-full h-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2z"></path>
+                            </svg>
+                        </div>
+                        {% endif %}
                     </div>
-                    {% endif %}
-                </div>
-                <div class="flex-grow">
-                    <h4 class="text-sm font-bold text-gray-800 line-clamp-1">{{ material.title }}</h4>
-                    <p class="text-[10px] text-gray-400 mt-1">分类：{{ material.material_type.name if material.material_type else '未分类' }} · {{ material.updated_at.strftime('%Y-%m-%d') }}</p>
-                </div>
-                <div class="flex gap-2">
-                    <a href="{{ url_for('admin.material_edit', material_id=material.id) }}" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                    <div class="flex-grow min-w-0">
+                        <h4 class="text-sm font-bold text-slate-200 truncate">{{ material.title }}</h4>
+                        <p class="text-xs text-slate-400 mt-1">{{ material.material_type.name if material.material_type else '未分类' }} · {{ material.updated_at.strftime('%Y-%m-%d') }}</p>
+                    </div>
+                    <a href="{{ url_for('admin.material_edit', material_id=material.id) }}" class="w-8 h-8 rounded-lg bg-slate-700 text-indigo-400 flex items-center justify-center hover:bg-slate-600 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2 2 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                        </svg>
                     </a>
                 </div>
+                {% endfor %}
+                {% if not latest_materials %}
+                <div class="text-center py-8">
+                    <p class="text-sm text-slate-500">暂无素材</p>
+                </div>
+                {% endif %}
             </div>
-            {% endfor %}
-            {% if not latest_materials %}
-            <div class="bg-white p-8 rounded-3xl border border-gray-100 text-center">
-                <p class="text-sm text-gray-500">暂无素材</p>
+        </div>
+        {% endif %}
+
+        <!-- 近期卡密 -->
+        {% if current_user.is_super_admin or current_user.has_permission('secret_manage') %}
+        <div class="chart-card">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="chart-title">近期生成卡密</h3>
+                <button class="text-sm text-indigo-400 font-bold hover:text-indigo-300 transition-colors" onclick="window.location.href='{{ url_for('admin.secrets') }}'">查看全部 →</button>
             </div>
-            {% endif %}
-        </div>
-    </section>
-    {% endif %}
-
-    <!-- 4. 卡密管理预览 -->
-    {% if current_user.is_super_admin or current_user.has_permission('secret_manage') %}
-    <section class="space-y-4">
-        <div class="flex items-center justify-between">
-            <h2 class="text-lg font-bold text-gray-800">近期生成卡密</h2>
-            <button class="text-sm text-blue-600 font-bold" onclick="window.location.href='{{ url_for('admin.secrets') }}'">查看全部</button>
-        </div>
-
-        <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-gray-50 border-b border-gray-100">
-                    <tr>
-                        <th class="px-4 py-3 font-bold text-gray-600 text-xs text-center w-12">状态</th>
-                        <th class="px-2 py-3 font-bold text-gray-600 text-xs">卡密内容</th>
-                        <th class="px-4 py-3 font-bold text-gray-600 text-xs text-right">操作</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-50">
-                    {% for secret in latest_secrets %}
-                    <tr>
-                        <td class="px-4 py-4 text-center">
-                            {% if not secret.is_used %}
-                            <span class="inline-block w-2 h-2 rounded-full bg-gray-300"></span>
-                            {% else %}
-                            <span class="inline-block w-2 h-2 rounded-full bg-green-500"></span>
-                            {% endif %}
-                        </td>
-                        <td class="px-2 py-4 font-mono text-xs {% if secret.is_used %}text-gray-300 line-through{% else %}text-gray-500{% endif %}">{{ secret.secret }}</td>
-                        <td class="px-4 py-4 text-right">
-                            {% if not secret.is_used %}
-                            <button class="text-red-500 text-xs font-bold" onclick="window.location.href='{{ url_for('admin.secrets') }}'">查看</button>
-                            {% else %}
-                            <button class="text-gray-300 text-xs font-bold" disabled>已用</button>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    {% if not latest_secrets %}
-                    <tr>
-                        <td colspan="3" class="px-4 py-8 text-center text-gray-400 text-xs">暂无卡密</td>
-                    </tr>
+            <div class="space-y-2">
+                {% for secret in latest_secrets %}
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <span class="w-2 h-2 rounded-full {% if not secret.is_used %}bg-slate-500{% else %}bg-green-500{% endif %}"></span>
+                        <span class="font-mono text-xs {% if secret.is_used %}text-slate-500 line-through{% else %}text-slate-300{% endif %}">{{ secret.secret }}</span>
+                    </div>
+                    {% if not secret.is_used %}
+                    <span class="text-xs text-indigo-400">可用</span>
+                    {% else %}
+                    <span class="text-xs text-slate-500">已用</span>
                     {% endif %}
-                </tbody>
-            </table>
+                </div>
+                {% endfor %}
+                {% if not latest_secrets %}
+                <div class="text-center py-8">
+                    <p class="text-sm text-slate-500">暂无卡密</p>
+                </div>
+                {% endif %}
+            </div>
         </div>
-    </section>
-    {% endif %}
-
-</div>
-
-<!-- 底部弹窗占位 (用于新增素材/卡密时弹出) -->
-<div id="modal-overlay" class="fixed inset-0 bg-black/50 z-[100] hidden flex items-end">
-    <div class="w-full bg-white rounded-t-[40px] p-8 space-y-6 transform translate-y-full transition-transform">
-        <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-2"></div>
-        <h3 class="text-xl font-bold text-center">添加新素材</h3>
-        <!-- 表单示例内容... -->
-        <button class="w-full py-4 bg-gray-900 text-white font-bold rounded-2xl">确认保存</button>
+        {% endif %}
     </div>
 </div>
 
+<!-- ECharts 引入 -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 
+<script>
+    // 更新当前时间
+    function updateTime() {
+        const now = new Date();
+        const timeStr = now.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        document.getElementById('currentTime').textContent = timeStr;
+    }
+    updateTime();
+    setInterval(updateTime, 1000);
+
+    // 数字动画
+    function animateNumber(element, target, duration = 1000) {
+        const start = 0;
+        const increment = target / (duration / 16);
+        let current = start;
+        
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                element.textContent = target.toLocaleString();
+                clearInterval(timer);
+            } else {
+                element.textContent = Math.floor(current).toLocaleString();
+            }
+        }, 16);
+    }
+
+    // 页面加载时执行数字动画
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            animateNumber(document.getElementById('totalMaterials'), {{ total_materials }});
+            animateNumber(document.getElementById('unusedSecrets'), {{ unused_secrets }});
+            animateNumber(document.getElementById('totalUsers'), {{ total_users }});
+            animateNumber(document.getElementById('totalRemix'), {{ total_remix_count }});
+        }, 300);
+    });
+
+    // 用户增长趋势图
+    const userGrowthChart = echarts.init(document.getElementById('userGrowthChart'));
+    const userGrowthOption = {
+        backgroundColor: 'transparent',
+        tooltip: {
+            trigger: 'axis',
+            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+            borderColor: 'rgba(99, 102, 241, 0.3)',
+            textStyle: { color: '#e2e8f0' }
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            top: '10%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: {{ user_growth_dates|safe }},
+            axisLine: { lineStyle: { color: '#334155' } },
+            axisLabel: { color: '#64748b' }
+        },
+        yAxis: {
+            type: 'value',
+            axisLine: { lineStyle: { color: '#334155' } },
+            axisLabel: { color: '#64748b' },
+            splitLine: { lineStyle: { color: '#1e293b' } },
+            minInterval: 1
+        },
+        series: [
+            {
+                name: '新增用户',
+                type: 'line',
+                smooth: true,
+                data: {{ user_growth_data|safe }},
+                itemStyle: { color: '#10b981' },
+                areaStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: 'rgba(16, 185, 129, 0.4)' },
+                        { offset: 1, color: 'rgba(16, 185, 129, 0)' }
+                    ])
+                },
+                lineStyle: {
+                    width: 3
+                },
+                symbol: 'circle',
+                symbolSize: 8,
+                emphasis: {
+                    itemStyle: {
+                        color: '#10b981',
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }
+                }
+            }
+        ]
+    };
+    userGrowthChart.setOption(userGrowthOption);
+
+    // 饼图
+    const pieChart = echarts.init(document.getElementById('pieChart'));
+    const pieOption = {
+        backgroundColor: 'transparent',
+        tooltip: {
+            trigger: 'item',
+            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+            borderColor: 'rgba(99, 102, 241, 0.3)',
+            textStyle: { color: '#e2e8f0' }
+        },
+        legend: {
+            orient: 'vertical',
+            left: 'left',
+            textStyle: { color: '#94a3b8' }
+        },
+        series: [
+            {
+                name: '数据分布',
+                type: 'pie',
+                radius: ['40%', '70%'],
+                center: ['60%', '50%'],
+                avoidLabelOverlap: false,
+                itemStyle: {
+                    borderRadius: 10,
+                    borderColor: '#0f172a',
+                    borderWidth: 2
+                },
+                label: {
+                    show: false,
+                    position: 'center'
+                },
+                emphasis: {
+                    label: {
+                        show: true,
+                        fontSize: 20,
+                        fontWeight: 'bold',
+                        color: '#e2e8f0'
+                    }
+                },
+                labelLine: {
+                    show: false
+                },
+                data: [
+                    { value: {{ total_materials }}, name: '总素材', itemStyle: { color: '#3b82f6' } },
+                    { value: {{ total_remix_count }}, name: '创作素材', itemStyle: { color: '#f97316' } }
+                ]
+            }
+        ]
+    };
+    pieChart.setOption(pieOption);
+
+    // 响应式
+    window.addEventListener('resize', () => {
+        userGrowthChart.resize();
+        pieChart.resize();
+    });
+</script>
 {% endblock %}

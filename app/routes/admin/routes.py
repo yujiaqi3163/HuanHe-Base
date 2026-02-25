@@ -124,6 +124,30 @@ def index():
     unused_secrets = RegisterSecret.query.filter_by(is_used=False).count()
     total_users = User.query.count()
     
+    # 新增统计数据 - 直接从表中统计更准确
+    from app.models import UserMaterial
+    total_remix_count = UserMaterial.query.count()
+    total_download_count = 0
+    
+    # 用户增长数据统计（最近7天）
+    from datetime import datetime, timedelta
+    user_growth_data = []
+    user_growth_dates = []
+    
+    # 获取最近7天的日期
+    for i in range(6, -1, -1):
+        date = datetime.utcnow() - timedelta(days=i)
+        date_str = date.strftime('%Y-%m-%d')
+        user_growth_dates.append(date_str)
+        
+        # 统计当天注册的用户数
+        next_day = date + timedelta(days=1)
+        daily_count = User.query.filter(
+            User.created_at >= date,
+            User.created_at < next_day
+        ).count()
+        user_growth_data.append(daily_count)
+    
     # 最新更新的素材（前3个，按updated_at倒序）
     latest_materials = Material.query.order_by(Material.updated_at.desc()).limit(3).all()
     
@@ -137,6 +161,9 @@ def index():
                           total_materials=total_materials,
                           unused_secrets=unused_secrets,
                           total_users=total_users,
+                          total_remix_count=total_remix_count,
+                          user_growth_dates=user_growth_dates,
+                          user_growth_data=user_growth_data,
                           latest_materials=latest_materials,
                           latest_secrets=latest_secrets,
                           customer_service_wechat=customer_service_wechat)

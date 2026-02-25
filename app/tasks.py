@@ -15,7 +15,7 @@ import os
 import json
 from celery_config import celery_app
 from app import create_app, db
-from app.models import Material, UserMaterial, UserMaterialImage, MaterialImage, UserDownload
+from app.models import Material, UserMaterial, UserMaterialImage, MaterialImage, UserDownload, Config
 from app.utils.material_remix import optimize_copywriting, get_unique_css_recipes
 from app.utils.logger import get_logger
 
@@ -77,21 +77,6 @@ def async_remix_material(self, material_id, user_id):
                 db.session.add(user_img)
             
             db.session.commit()
-            
-            # 4. 同时记录到下载列表
-            existing_download = UserDownload.query.filter_by(
-                user_id=user_id,
-                user_material_id=user_material.id
-            ).first()
-            
-            if not existing_download:
-                download = UserDownload(
-                    user_id=user_id,
-                    user_material_id=user_material.id
-                )
-                db.session.add(download)
-                user_material.download_count += 1
-                db.session.commit()
             
             logger.info(f'用户素材创建成功: user_material_id={user_material.id}, user_id={user_id}')
             
