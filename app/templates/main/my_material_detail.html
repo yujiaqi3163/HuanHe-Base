@@ -395,6 +395,16 @@
 
     // 下载素材
     async function downloadMaterial() {
+        // 检测 iOS 设备 (iPhone, iPad, iPod)
+        // iPadOS 13+ 可能会报告为 Macintosh，所以需要检查 maxTouchPoints
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || 
+                      (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
+
+        if (isIOS) {
+            alert('苹果设备请长按上方图片进行保存哦~ 🍎');
+            return;
+        }
+
         const userMaterialId = {{ user_material.id }};
         
         // 使用 tojson 过滤器安全地传递图片数据

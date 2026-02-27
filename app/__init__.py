@@ -56,14 +56,14 @@ class Config:
     CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
     CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
     
-    # 邮件配置（163 邮箱 SMTP）
-    MAIL_SERVER = 'smtp.163.com'
-    MAIL_PORT = 465
-    MAIL_USE_SSL = True
-    MAIL_USE_TLS = False
+    # 邮件配置
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.163.com')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', 465))
+    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'True').lower() in ['true', 'on', '1']
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'False').lower() in ['true', 'on', '1']
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME') or ''
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') or ''
-    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_USERNAME') or ''
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or MAIL_USERNAME or ''
 
 
 # 初始化数据库对象

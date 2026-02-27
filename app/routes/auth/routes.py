@@ -12,15 +12,13 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session, jsonify, current_app  # 导入Flask相关模块
 from flask_login import login_user, logout_user, current_user, login_required  # 导入用户认证相关模块
 from datetime import datetime, timedelta  # 导入日期时间模块
-from app import db  # 导入数据库实例
+from app import db, mail  # 导入数据库和邮件实例
 from app.models import User, RegisterSecret, Config  # 导入数据模型
 from app.forms import LoginForm, RegisterForm  # 导入表单类
 from app.utils.rate_limit import limiter
 import random  # 导入随机数模块
-import smtplib
 import logging
-from email.mime.text import MIMEText
-from email.header import Header
+from flask_mail import Message
 
 logger = logging.getLogger(__name__)
 
@@ -59,27 +57,20 @@ def send_code():
         
         logger.info(f'准备向 {email} 发送验证码')
         
-        sender_email = current_app.config.get('MAIL_USERNAME', '')
-        sender_password = current_app.config.get('MAIL_PASSWORD', '')
-        
-        if not sender_email or not sender_password:
+        if not current_app.config.get('MAIL_USERNAME') or not current_app.config.get('MAIL_PASSWORD'):
             logger.error('邮箱配置缺失')
             return jsonify({'success': False, 'message': '邮箱配置缺失'}), 500
         
         try:
             logger.debug('正在发送邮件...')
             
-            message_content = f'Your verification code is: {code}\n\nThis code will expire in 5 minutes, please use it as soon as possible.'
+            msg = Message(
+                subject='Verification Code',
+                recipients=[email],
+                body=f'Your verification code is: {code}\n\nThis code will expire in 5 minutes, please use it as soon as possible.'
+            )
             
-            msg = MIMEText(message_content, 'plain', 'utf-8')
-            msg['From'] = sender_email
-            msg['To'] = email
-            msg['Subject'] = Header('Verification Code', 'utf-8')
-            
-            smtp_server = smtplib.SMTP_SSL('smtp.163.com', 465, timeout=10)
-            smtp_server.login(sender_email, sender_password)
-            smtp_server.sendmail(sender_email, [email], msg.as_string())
-            smtp_server.quit()
+            mail.send(msg)
             
             logger.info(f'邮件发送成功到 {email}')
         except Exception as e:
@@ -405,27 +396,20 @@ def forgot_send_code():
         
         logger.info(f'准备向 {email} 发送重置密码验证码')
         
-        sender_email = current_app.config.get('MAIL_USERNAME', '')
-        sender_password = current_app.config.get('MAIL_PASSWORD', '')
-        
-        if not sender_email or not sender_password:
+        if not current_app.config.get('MAIL_USERNAME') or not current_app.config.get('MAIL_PASSWORD'):
             logger.error('邮箱配置缺失')
             return jsonify({'success': False, 'message': '邮箱配置缺失'}), 500
         
         try:
             logger.debug('正在发送邮件...')
             
-            message_content = f'Your password reset verification code is: {code}\n\nThis code will expire in 5 minutes, please use it as soon as possible.'
+            msg = Message(
+                subject='Password Reset Code',
+                recipients=[email],
+                body=f'Your password reset verification code is: {code}\n\nThis code will expire in 5 minutes, please use it as soon as possible.'
+            )
             
-            msg = MIMEText(message_content, 'plain', 'utf-8')
-            msg['From'] = sender_email
-            msg['To'] = email
-            msg['Subject'] = Header('Password Reset Code', 'utf-8')
-            
-            smtp_server = smtplib.SMTP_SSL('smtp.163.com', 465, timeout=10)
-            smtp_server.login(sender_email, sender_password)
-            smtp_server.sendmail(sender_email, [email], msg.as_string())
-            smtp_server.quit()
+            mail.send(msg)
             
             logger.info(f'重置密码邮件发送成功到 {email}')
         except Exception as e:
